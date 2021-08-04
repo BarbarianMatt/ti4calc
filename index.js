@@ -628,7 +628,6 @@
 				var attackerOptionKeys = Object.keys(attackerOption);
 				var defenderOptionKeys = Object.keys(defenderOption);
 				var result = [];
-				console.log(this);
 				if (attackerOptionKeys.indexOf("infiniteTG") !== -1 && !this.options.attacker.hacanFlagship) attackerOptionKeys.splice(attackerOptionKeys.indexOf("infiniteTG"),1);
 				if (defenderOptionKeys.indexOf("infiniteTG") !== -1 && !this.options.defender.hacanFlagship) defenderOptionKeys.splice(defenderOptionKeys.indexOf("infiniteTG"),1);
 
