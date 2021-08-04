@@ -1,0 +1,279 @@
+body {
+	padding-top: .2em;
+	padding-bottom: .2em;
+}
+
+.center-grid {
+	justify-content: center;
+}
+
+#options .o-grid {
+	align-items: center;
+	margin: .3em 0;
+}
+
+.center-grid .unit-name {
+	flex-basis: 10em;
+	flex-grow: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	min-width: 7em;
+}
+
+.center-grid .block {
+	flex-basis: 9em;
+	flex-grow: 0;
+	width: auto;
+}
+
+.center-grid .damaged {
+	flex-basis: 2.5em;
+	flex-shrink: 0;
+	flex-grow: 0;
+	min-width: 2.5em;
+}
+
+.center-grid .participants {
+	flex-basis: 2.5em;
+	flex-shrink: 0;
+	flex-grow: 0;
+	min-width: 2.5em;
+}
+
+.center-grid .notBombarding {
+	flex-basis: 2.5em;
+	flex-shrink: 0;
+	flex-grow: 0;
+	min-width: 2.5em;
+}
+
+.center-grid .block:first-child {
+	text-align: right;
+}
+
+.spread-grid {
+	justify-content: space-between;
+}
+
+.spread-grid .o-grid__cell {
+	flex-basis: auto;
+	flex-grow: 0;
+	width: auto;
+}
+
+#counters .counter input {
+	text-align: center;
+}
+
+#counters .counter {
+	flex-basis: 11.5em;
+	flex-grow: 0;
+	flex-shrink: 0;
+	min-width: 17em;
+}
+
+#counters .counter .c-button {
+	padding: .2em .3em;
+}
+
+#counters .c-button.upgrade {
+	min-width: 2em;
+}
+
+#counters .counter .count-stepper {
+	padding-left: .8em;
+	padding-right: .8em;
+}
+
+#totals .block {
+	flex-basis: 11.5em;
+	flex-grow: 0;
+	flex-shrink: 0;
+}
+
+#totals .block .count {
+	width: 2.6em;
+	display: inline-block;
+	text-align: center;
+}
+
+#totals .block .count:first-child {
+	margin-left: 2.1em;
+}
+
+#totals .block .count:last-child {
+	margin-right: 2.4em;
+}
+
+#options .heading {
+	margin-top: .6em;
+	margin-bottom: .3em;
+	text-align: center;
+}
+
+#options .o-grid__cell {
+	flex-basis: auto;
+	flex-grow: 0;
+	width: auto;
+	padding: 0 .5em;
+}
+
+#options .o-grid__cell.left-option {
+  flex: 1 0 0;
+  display: flex;
+  justify-content: flex-end;
+}
+
+#options .o-grid__cell.right-option {
+	flex: 1 0 0;
+}
+
+#result-area {
+	margin-left: auto;
+	margin-right: auto;
+}
+
+/* stolen from http://stackoverflow.com/questions/3790935/can-i-hide-the-html5-number-inputs-spin-box*/
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+	/* display: none; <- Crashes Chrome on hover */
+	-webkit-appearance: none;
+	margin: 0; /* <-- Apparently some margin are still there even though it's hidden */
+}
+
+input[type=number] {
+	-moz-appearance: textfield;
+}
+
+.hidden {
+	visibility: hidden;
+}
+
+.collapsed {
+	display: none !important;
+}
+
+#chart-area {
+	position: absolute;
+	z-index: 1;
+}
+
+#chart-area-overlay {
+	position: absolute;
+	z-index: 0;
+}
+
+.help::after {
+	content: "?";
+}
+
+.help {
+	background: lightblue;
+	border-radius: 20px;
+	width: 20px;
+	display: inline-block;
+	text-align: center;
+	border: 1px solid cornflowerblue;
+	font-weight: bold;
+	color: darkblue;
+	padding: 0;
+}
+
+#help .letter {
+	width: 3em;
+	text-align: center;
+}
+
+.o-grid {
+	margin-top: .1em;
+	margin-bottom: .1em;
+}
+
+.c-button {
+	padding: .3em;
+}
+
+.c-field {
+	padding: .3em;
+}
+
+/* workaround blazecss input groups handling a bit */
+.c-input-group .c-button.hidden + .c-button {
+	border-left-width: 1px;
+	margin-left: -1px;
+}
+
+.c-input-group .damaged.hidden + .c-button {
+	border-left-width: 1px;
+	margin-left: -1px;
+}
+
+.left-option {
+	display: flex;
+	text-align: right;
+	align-items: center;
+}
+
+.left-option input {
+	margin-left: .3em;
+}
+
+.right-option {
+	display: flex;
+	text-align: left;
+	align-items: center;
+}
+
+.right-option input {
+	margin-right: .3em;
+}
+
+#counters .o-grid.attacker-participates.defender-participates .unit-name {
+	background: #f0f0ff;
+}
+
+#counters .o-grid.attacker-participates .unit-name {
+	background: linear-gradient(0.25turn, #f0f0ff, #f0f0ff 70%, white 90%, white);
+}
+
+#counters .o-grid.defender-participates .unit-name {
+	background: linear-gradient(-0.25turn, #f0f0ff, #f0f0ff 70%, white 90%, white);
+}
+
+#chart-size-selector {
+	display: flex;
+	align-items: center;
+	margin-top: .5em;
+}
+
+#spinner-container {
+	position: absolute;
+	z-index: 10;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+@keyframes rotate-forever {
+	0% {
+		transform: rotate(0deg);
+	}
+	100% {
+		transform: rotate(360deg);
+	}
+}
+
+.loading-spinner {
+	animation-duration: 0.75s;
+	animation-iteration-count: infinite;
+	animation-name: rotate-forever;
+	animation-timing-function: linear;
+	height: 30px;
+	width: 30px;
+	border: 8px solid black;
+	border-right-color: transparent;
+	border-radius: 50%;
+	display: inline-block;
+	margin: 0 auto;
+}
