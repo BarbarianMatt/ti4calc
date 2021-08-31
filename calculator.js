@@ -49,9 +49,10 @@
 						problemArray = action.execute(problemArray, attackerFull, defenderFull, options, input);
 				});
 				// the most interesting part - actually compute outcome probabilities
+				
 				for (var i = 0; i < problemArray.length; ++i)
 					if (problemArray[i].attacker.length && problemArray[i].defender.length){
-						//console.log(JSON.parse(JSON.stringify(problemArray[i])));
+						console.log(JSON.parse(JSON.stringify(problemArray[i])));
 						solveProblem(problemArray[i], battleType, attackerFull, defenderFull, options,input );
 					}
 
@@ -88,23 +89,23 @@
 				return [unit.shortType];
 			});
 			var tgsAttacker=0;
-			for (var i = finalDistribution.min; i <=finalDistribution.max; i++){
+			/*for (var i = finalDistribution.min; i <=finalDistribution.max; i++){
 				var sustainDamages=0;
 				for (var j=0; j<i+finalDistribution.min*-1;j++){
 					var unit = problemArray[0].attacker[Math.max(problemArray[0].attacker.length-1-j,0)] || {isDamageGhost: false};
 					sustainDamages+=unit.isDamageGhost ? 1 : 0;
 				}
 				tgsAttacker+= finalDistribution[i]*sustainDamages;
-			}
+			}*/
 			var tgsDefender=0;
-			for (var i = finalDistribution.max; i >=finalDistribution.min; i--){
+			/*for (var i = finalDistribution.max; i >=finalDistribution.min; i--){
 				var sustainDamages=0;
 				for (var j=0; j<finalDistribution.max-i;j++){
 					var unit = problemArray[0].defender[Math.max(problemArray[0].defender.length-1-j,0)] || {isDamageGhost: false};
 					sustainDamages+=unit.isDamageGhost ? 1 : 0;
 				}
 				tgsDefender+= finalDistribution[i]*sustainDamages;
-			}
+			}*/
 			tgsAttacker=tgsAttacker==0 || !options.attacker.letnevCommander ? null : Math.round(tgsAttacker*1000)/1000;
 			tgsDefender=tgsDefender==0 || !options.defender.letnevCommander ? null : Math.round(tgsDefender*1000)/1000;
 
@@ -1111,18 +1112,24 @@
 					name: 'Sol Commander',
 					appliesTo: game.BattleType.Ground,
 					execute: function (problemArray, attackerFull, defenderFull, options) {
-						if (!options.defender.solCommander) {
+						var length=0;
+						problemArray.forEach(function (problem){
+							length+=problem.defender.length;
+						})
+						if (!options.defender.solCommander || length===0)
 							return problemArray;
-						}
+						//console.log(JSON.parse(JSON.stringify(problemArray)));
 						var result = [];
 						problemArray.forEach(function (problem) {
+							//console.log(JSON.parse(JSON.stringify(problem)));
 							var unit = game.MergedUnits[options.defender.race][game.UnitType.Ground]
 							problem.defender.push(unit);
 							problem.defender.sort(problem.defender.comparer);
 							var index = findGroundForceIndex(problem.defender)+1;
 							var ranges = [index-1,index-1];
 							var going = true;
-							for (var i=1;i<index+1 && going;i++){
+							console.log(JSON.parse(JSON.stringify(index)));
+							for (var i=1;i<index && going;i++){
 								for (var j=0; j<problem.distribution.rows;j++){
 									if (problem.distribution[j][i] !== 0){
 										ranges[0] = i;
@@ -1131,6 +1138,7 @@
 									}
 								}
 							}
+							console.log(ranges);
 							for(var i=ranges[1]; i>=ranges[0]; i--){
 								var tempProblem = JSON.parse(JSON.stringify(problem));
 								if (i!=ranges[0]){
@@ -1153,9 +1161,8 @@
 								tempProblem.distribution.columns = tempProblem.defender.length+1;
 								result.push(tempProblem);
 							}
-							
-							
 						});
+						console.log(JSON.parse(JSON.stringify(result)));
 						return result;
 
 						function findGroundForceIndex(fleet){
