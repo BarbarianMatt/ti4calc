@@ -359,7 +359,7 @@
 		Dreadnought: new root.UnitInfo(UnitType.Dreadnought, {
 			sustainDamageHits: 1,
 			battleValue: 5,
-			bombardmentValue: 6,
+			bombardmentValue: 5,
 			bombardmentDice: 1,
 			cost: 4,
 		}),
