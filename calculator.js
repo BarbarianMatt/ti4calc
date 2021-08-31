@@ -1111,7 +1111,7 @@
 					name: 'Sol Commander',
 					appliesTo: game.BattleType.Ground,
 					execute: function (problemArray, attackerFull, defenderFull, options) {
-						if (!options.defender.solCommander || problemArray[0].defender.length===0) {
+						if (!options.defender.solCommander) {
 							return problemArray;
 						}
 						var result = [];
