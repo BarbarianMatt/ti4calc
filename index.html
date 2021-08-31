@@ -197,7 +197,7 @@
 						|| (key === 'maneuveringJets2D' && options.defender.maneuveringJets) || (key === 'maneuveringJets3D' && options.defender.maneuveringJets2D) || (key === 'maneuveringJets4D' && options.defender.maneuveringJets3D)"></option-pair>
 		<div class="heading"><strong>Leaders</strong></div>
 		<option-pair v-for="(option, key) in Leaders"
-						:option-name="key" :option="option" :options="options"></option-pair>
+						:option-name="key" :option="option" :options="options" :visible="(key !== 'argentCommanderFirstRound') || (key === 'argentCommanderFirstRound' && options.attacker.race === 'L1Z1X' && options.attacker.argentCommander)"></option-pair>
 		<option-pair v-for="pair in heroes" :pair="pair" :options="options"></option-pair>
 		<div class="heading"><strong>Agendas / Promissory / Racial / Miscellaneous</strong></div>
 		<option-pair v-for="(option, key) in Agendas"

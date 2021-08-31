@@ -66,17 +66,20 @@
 
 					var sardakkMech = (self.options.attacker.race === Race.Sardakk && self.attackerUnits.Mech.count !== 0 ||
 						self.options.defender.race === Race.Sardakk && self.defenderUnits.Mech.count !== 0) && self.battleType === BattleType.Ground && !self.options.attacker.articlesOfWar;
-						
+					//var sardakkMech = false;
 					// Same reason as Sardakk Mechs
-					var reflective = (self.options.attacker.reflectiveShielding || self.options.defender.reflectiveShielding);
+					var reflective = (self.options.attacker.reflectiveShielding || self.options.defender.reflectiveShielding) && self.battleType === BattleType.Space;
 				
 					var l1z1xX89Omega = (self.options.attacker.race === Race.L1Z1X && self.options.attacker.x89);
-					var mentakH = self.options.attacker.mentakHero || self.options.defender.mentakHero;
-					var yinA= self.options.attacker.yinAgent || self.options.defender.yinAgent;
-					var directHit = self.options.attacker.directHit || self.options.defender.directHit;
-					var valkyrieAndNonEuclidean = (self.options.attacker.valkyrieParticleWeave && self.options.defender.nonEuclidean) || (self.options.defender.valkyrieParticleWeave && self.options.attacker.nonEuclidean)
-					var dunlainMechs = self.options.attacker.dunlainMechs || self.options.defender.dunlainMechs;
-					if ((duraniumArmor || l1z1xFlagship || letnevFlagship || sardakkMech || reflective || l1z1xX89Omega || mentakH || yinA  || directHit || valkyrieAndNonEuclidean || dunlainMechs) || self.forceSlow){
+					var mentakH = (self.options.attacker.mentakHero || self.options.defender.mentakHero) && self.battleType === BattleType.Space;
+					var yinA = (self.options.attacker.yinAgent || self.options.defender.yinAgent) && self.battleType === BattleType.Space;
+					var directHit = (self.options.attacker.directHit || self.options.defender.directHit) && self.battleType === BattleType.Space;
+					var valkyrieAndNonEuclidean = ((self.options.attacker.valkyrieParticleWeave && self.options.defender.nonEuclidean) || (self.options.defender.valkyrieParticleWeave && self.options.attacker.nonEuclidean)) && 
+						self.battleType === BattleType.Ground;
+					var dunlainMechs = (self.options.attacker.dunlainMechs || self.options.defender.dunlainMechs) && self.battleType === BattleType.Ground;
+					//var solCommander = self.options.defender.solCommander && self.battleType === BattleType.Ground;
+					var daxcive = self.options.attacker.daxcive;
+					if ((duraniumArmor || l1z1xFlagship || letnevFlagship || sardakkMech || reflective || l1z1xX89Omega || mentakH || yinA  || directHit || valkyrieAndNonEuclidean || dunlainMechs || /*solCommander ||*/ daxcive) || self.forceSlow){
 						output = imitator.estimateProbabilities(self);
 						lastComputed = output[0];
 						self.tgs.attacker.tg = output[1];
@@ -361,9 +364,12 @@
 					this.options.defender.infiniteTG = false;
 			},
 			'options.attacker.plasmaScoring': function (value) {
-				if (!value){
+				if (!value)
 					this.options.attacker.plasmaScoringFirstRound = false;
-				}
+			},
+			'options.attacker.argentCommander': function (value) {
+				if (!value)
+					this.options.attacker.argentCommanderFirstRound = false;
 			},
 			'attackerUnits.Flagship.upgraded' : function(value) {
 				if (!value)

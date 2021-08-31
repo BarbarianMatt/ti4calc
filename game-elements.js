@@ -153,10 +153,11 @@
 		magenDefenseOmega: new Option('Magen Defense Grid Ω', '1 hit at the start of ground combat when having structures'),
 		//hasStructure: new Option('Has Structure', 'Attacker has a structure on the planet somehow for Magen Defence Grid Ω', 'attacker'), // not a technology itself, but it's nice to show it close to Magen Defence Grid Ω
 		hasDock: new Option('Has Dock', 'Defender has a dock for Magen Defence Grid Ω', 'defender'), // not a technology itself, but it's nice to show it close to Magen Defence Grid Ω
-		x89Omega: new Option('X-89 Bacterial Weapon Ω', 'Destroy all Infantry by bombardment if at least one is destroyed', 'attacker'),
+		x89Omega: new Option('X-89 Bacterial Weapon Ω (WIP)', 'Destroy all Infantry by bombardment if at least one is destroyed', 'attacker'),
 		x89Conservative: new Option('Assign X-89 Hits Conservatively', 'Sacrifice other Ground Forces if it prevents X-89 Bacterial Weapon Ω from activating', 'defender'),
 		duraniumArmor: new Option('Duranium Armor', 'After each round repair 1 unit that wasn\'t damaged this round'),
 		assaultCannon: new Option('Assault Cannon', 'Opponent destroys 1 non-Fighter ship if you have at least 3 non-Fighters'),
+		daxcive: new Option('Daxcive Animators', 'Ground Forces that die get to roll one more time'),
 	};
 	root.Agendas = {
 		publicizeSchematics: new Option('Publicize Weapon Schematics', 'War Suns don\'t sustain damage'),
@@ -187,10 +188,11 @@
 
 	root.Leaders = {
 		argentCommander: new Option('Argent Flight Commander', 'One additional die for one unit during Space Cannon, Bombardment, and Anti-Fighter Barrage'),
+		argentCommanderFirstRound: new Option('Argent Flight Commander Not Used Initially', "Argent Flight Commander isn't used in the initial Bombardment", 'attacker'),
 		jolnarCommander: new Option('Jol-Nar Commander', 'Reroll Space Cannon, Bombardment, or Anti-Fighter Barrage dice'),
 		L1Z1XCommander: new Option('L1Z1X Commander', 'All units ignore planerary shield', 'attacker'),
 		letnevCommander: new Option('Barony of Letnev Commander', 'Gain 1 trade good when one of your units uses Sustain Damage'),
-		solCommander: new Option('Sol Commander', 'At the start of ground combat, place one infantry'),
+		solCommander: new Option('Sol Commander', 'At the start of ground combat, place one infantry', 'defender'),
 		winnuCommander: new Option('Winnu Commander', '+2 dice modifier to all units in the Mecatol Rex system, your home system, and each system that contains a legendary planet'),
 		letnevAgent: new Option('Letnev Agent 1st Round', 'One additional die for one ship during the first round of space combat'),
 		solAgent: new Option('Sol Agent 1st Round', 'One additional die for one ground force during the first round of ground combat'),
@@ -298,7 +300,7 @@
 			this.typeStructure = stats.typeStructure || type === root.UnitType.PDS;
 			this.planetaryShield = stats.planetaryShield || type === root.UnitType.PDS;
 			this.importance = stats.importance || NaN;
-			this.cancelHit = stats.cancelHit || NaN;
+			this.cancelHit = stats.cancelHit || false;
 		}
 
 		UnitInfo.prototype.clone = function () {
@@ -357,7 +359,7 @@
 		Dreadnought: new root.UnitInfo(UnitType.Dreadnought, {
 			sustainDamageHits: 1,
 			battleValue: 5,
-			bombardmentValue: 5,
+			bombardmentValue: 6,
 			bombardmentDice: 1,
 			cost: 4,
 		}),
@@ -417,7 +419,7 @@
 			Dreadnought: new root.UnitInfo(UnitType.Dreadnought, {
 				sustainDamageHits: 1,
 				battleValue: 5,
-				bombardmentValue: 1,
+				bombardmentValue: 4,
 				bombardmentDice: 2,
 				cost: 4,
 			}),
@@ -508,7 +510,7 @@
 			}),
 			Mech: new root.UnitInfo(UnitType.Mech, {
 				sustainDamageHits: 1,
-				battleValue: 6,
+				battleValue: 5,
 				bombardmentValue: 8,
 				bombardmentDice: 1,
 				cost: 2,
@@ -873,8 +875,6 @@
 		}
 		for (var unitType in UnitType) {
 			var counter = thisSideCounters[unitType] || { count: 0 };
-			/*if (!((unitType === UnitType.Mech && options.attacker.race === 'L1Z1X') || (unitType === UnitType.Flagship && thisSideOptions.race === 'Xxcha')))
-				counter.participants = counter.participants ? 0: counter.participants;*/
 			for (var i = 0; i < counter.count; i++) {
 				var unit = (counter.upgraded ? upgradedUnits : standardUnits)[unitType];
 				var addedUnit = unit.clone();
@@ -922,6 +922,7 @@
 			result.push(ghostHit);
 		}
 		thisSideOptions.yinAgentUses= thisSideOptions.yinAgent ? 1 : 0 ;
+		thisSideOptions.reflectiveShieldingUses= thisSideOptions.reflectiveShielding ? 1 : 0 ;
 		thisSideOptions.hacanFlagship = battleType === root.BattleType.Space && thisSideOptions.race === root.Race.Hacan &&
 		(input[root.SideUnits[battleSide]][UnitType.Flagship] || { count: 0 }).count !== 0;
 		thisSideOptions.virusFlagship = virusFlagship;
@@ -1124,11 +1125,6 @@
 				ghostHit.shortType='T',
 				result.push(ghostHit);
 			}
-			if (result.length >0 && thisSideOptions.solCommander && battleType === root.BattleType.Ground){
-				var counter = thisSideCounters[root.UnitType.Ground] || { count: 0 }
-				var unit = (counter.upgraded ? upgradedUnits : standardUnits)[root.UnitType.Ground];
-				result.push(unit);
-			}
 			result.sort(this.comparer);
 			return result;
 		}
@@ -1137,7 +1133,6 @@
 
 	// Check whether the race has an upgrade for the unit 
 	root.upgradeable = function (race, unitType) {
-		//console.log(race);
 		return !!(root.StandardUpgrades.hasOwnProperty(unitType) ||
 			root.RaceSpecificUpgrades[race] &&
 			root.RaceSpecificUpgrades[race].hasOwnProperty(unitType)) ||

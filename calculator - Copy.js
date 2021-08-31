@@ -50,10 +50,8 @@
 				});
 				// the most interesting part - actually compute outcome probabilities
 				for (var i = 0; i < problemArray.length; ++i)
-					if (problemArray[i].attacker.length && problemArray[i].defender.length){
-						//console.log(JSON.parse(JSON.stringify(problemArray[i])));
+					if (problemArray[i].attacker.length && problemArray[i].defender.length)
 						solveProblem(problemArray[i], battleType, attackerFull, defenderFull, options,input );
-					}
 
 				// format output
 				var finalDistribution = new structs.DistributionBase(-attacker.length, defender.length);
@@ -133,7 +131,7 @@
 			var defenderBoost = boost(battleType, options.defender, options.attacker, problem.defender, true);
 			var attackerRollBoost = rollBoost(battleType, options.attacker, options.defender, problem.attacker, true,attackerFull);
 			var defenderRollBoost = rollBoost(battleType, options.defender, options.attacker, problem.defender, true,defenderFull);
-			//console.log(JSON.parse(JSON.stringify(problem.distribution)));
+			console.log(JSON.parse(JSON.stringify(problem.distribution)));
 			var attackerReroll = battleType === game.BattleType.Ground && options.attacker.fireTeam ||
 				battleType === game.BattleType.Space && options.attacker.letnevMunitionsFunding ||
 				battleType === game.BattleType.Space && options.attacker.munitions;
@@ -260,7 +258,6 @@
 					applyTransitions(problem, attackerTransitionsFactory, defenderTransitionsFactory, options, effectsFlags);
 				}
 			}
-			//console.log(JSON.parse(JSON.stringify(problem)));
 			propagateProbabilityUpLeft(problem, battleType, attackerFull, defenderFull, options,input);
 		}
 
@@ -268,7 +265,7 @@
 			
 			var distr = problem.distribution;
 			// evaluate probabilities of transitions for each fleet
-			//console.log(JSON.parse(JSON.stringify(problem.distribution)));
+			console.log(JSON.parse(JSON.stringify(problem.distribution)));
 			var attackerReroll = options.attacker.munitions;
 			var defenderReroll = options.defender.munitions;
 			var attackerTransitions = computeFleetTransitions(problem.attacker, game.ThrowType.Battle, boost(battleType, options.attacker, options.defender, problem.attacker, false), rollBoost(battleType, options.attacker, options.defender, problem.attacker, false, attackerFull), attackerReroll,options.attacker);
@@ -289,8 +286,7 @@
 			var defenderFlagshipIndex = options.defender.race === game.Race.Yin ?
 				findLastIndex(problem.defender, unitIs(game.UnitType.Flagship)) + 1
 				: 0;
-			//console.log(distr.rows);
-			//console.log(distr.columns);
+
 			for (var a = distr.rows - 1; 0 < a; a--) {
 				for (var d = distr.columns - 1; 0 < d; d--) {
 					
@@ -302,14 +298,19 @@
 							defenderTransitions = computeFleetTransitions(problem.defender, game.ThrowType.Battle, boost(battleType, options.defender, options.attacker, problem.defender, false), rollBoost(battleType, options.defender, options.attacker, problem.defender, false,attackerFull),defenderReroll, options.defender);
 						}
 					}
+					//console.log(JSON.parse(JSON.stringify(attackerTransitions[a])));
 					var attackerTransitionsVector = adjustForNonEuclidean(attackerTransitions[a], problem.defender, d - 1, options.defender);
 					var defenderTransitionsVector = adjustForNonEuclidean(defenderTransitions[d], problem.attacker, a - 1, options.attacker);
-					//var transitionMatrix = (options.attacker.antimassDeflectors ? unconstrainedOrthogonalMultiply : orthogonalMultiply)(attackerTransitionsVector, defenderTransitionsVector, d + 1, a + 1);
 					var transitionMatrix = orthogonalMultiply(attackerTransitionsVector, defenderTransitionsVector, d + 1, a + 1);
+					console.log(transitionMatrix);
+					
+					//attackerTransitionsVector[1]=0;
+					//defenderTransitionsVector[1]=0;
 					var arrText='';
 					var num;
-
-					/*for (var y=0; y < transitionMatrix.columns; y++){
+					//console.log(attackerTransitions[a]);
+					//console.log(attackerTransitionsVector);
+					for (var y=0; y < transitionMatrix.columns; y++){
 						for (var x=0; x < transitionMatrix.rows; x++){
 							num = parseFloat(transitionMatrix.at(x,y).toFixed(15));
 							arrText+=num.toString()+' ';
@@ -317,7 +318,7 @@
 						}
 						console.log(arrText);
 						arrText='';
-					}*/
+					}
 
 					if (battleType === game.BattleType.Ground)
 						transitionMatrix = adjustForValkyrieParticleWeave(transitionMatrix, options, d + 1, a + 1);
@@ -330,6 +331,10 @@
 					else {
 						k = distr[a][d] / (1 - transitionMatrix.at(0, 0));
 					}
+					console.log(a,d);
+					//console.log(distr[a][d]);
+					//console.log(transitionMatrix.at(0, 0));
+					//console.log(k);
 					
 					// transitions for everything except for attackerInflicted===0&&defenderInflicted===0
 					for (var attackerInflicted = 0; attackerInflicted < transitionMatrix.rows; attackerInflicted++) {
@@ -345,6 +350,7 @@
 						}
 					}
 					distr[a][d] = 0;
+					console.log(JSON.parse(JSON.stringify(problem.distribution)));
 				}
 			}
 		}
@@ -614,7 +620,7 @@
 											for (var defenderInflicted = 0; defenderInflicted < transitionMatrix.columns; defenderInflicted++) {
 												var attackerVictims = gravitonLaserVictims(problem.attacker, attackerFull, a, defenderInflicted, options.attacker, options.defender);
 												var defenderVictims = gravitonLaserVictims(problem.defender, defenderFull, d, attackerInflicted, options.defender, options.attacker);
-												//console.log(attackerVictims);
+												console.log(attackerVictims);
 												ensemble.increment(attackerVictims, defenderVictims, a, d, transitionMatrix.at(attackerInflicted, defenderInflicted) * distribution[a][d]);
 											}
 										}
@@ -1108,169 +1114,6 @@
 					},
 				},
 				{
-					name: 'Sol Commander',
-					appliesTo: game.BattleType.Ground,
-					execute: function (problemArray, attackerFull, defenderFull, options) {
-						if (!options.defender.solCommander || problemArray[0].defender.length===0) {
-							return problemArray;
-						}
-						var result = [];
-						problemArray.forEach(function (problem) {
-							var unit = game.MergedUnits[options.defender.race][game.UnitType.Ground]
-							problem.defender.push(unit);
-							problem.defender.sort(problem.defender.comparer);
-							var index = findGroundForceIndex(problem.defender)+1;
-							var ranges = [index-1,index-1];
-							var going = true;
-							for (var i=1;i<index+1 && going;i++){
-								for (var j=0; j<problem.distribution.rows;j++){
-									if (problem.distribution[j][i] !== 0){
-										ranges[0] = i;
-										going = false;
-										break;
-									}
-								}
-							}
-							for(var i=ranges[1]; i>=ranges[0]; i--){
-								var tempProblem = JSON.parse(JSON.stringify(problem));
-								if (i!=ranges[0]){
-									for (var j=0; j<problem.distribution.rows;j++){
-										var zeroes = new Array(i).fill(0);
-										tempProblem.distribution[j].splice(0,zeroes.length,...zeroes);
-									}
-								}
-								if (i!=ranges[1]){
-									for (var j=0; j<problem.distribution.rows;j++){
-										tempProblem.distribution[j].splice(i+1,tempProblem.distribution[j].length-i-1);
-									}						
-									tempProblem.defender.splice(index,tempProblem.defender.length-index);
-									tempProblem.defender.splice(i,ranges[1]-i);
-								}
-								tempProblem.distribution[0].push(0);
-								for (var j = 1; j < tempProblem.distribution.length; j++) 
-									tempProblem.distribution[j].splice(1, 0, 0);
-								tempProblem.distribution.rows = tempProblem.attacker.length+1;
-								tempProblem.distribution.columns = tempProblem.defender.length+1;
-								result.push(tempProblem);
-							}
-							
-							
-						});
-						return result;
-
-						function findGroundForceIndex(fleet){
-							for(var i=0;i<fleet.length;i++){
-								if (fleet[i].type == "Ground")
-									return i;
-							}
-							return -1;
-						}
-					},
-				},
-				/*{
-					name: 'Sol Commander 2',
-					appliesTo: game.BattleType.Space,
-					execute: function (problemArray, attackerFull, defenderFull, options) {
-						if (!options.defender.solCommander) {
-							return problemArray;
-						}
-						var result = [];							
-						problemArray.forEach(function (problem) {
-							
-
-							if (true) {
-								var ensemble = new structs.EnsembleSplit(problem);
-
-								var distribution = problem.distribution;
-								for (var a = 0; a < distribution.rows; a++) {
-									for (var d = 0; d < distribution.columns; d++) {
-										if (distribution[a][d] === 0) continue;
-
-										//var transitionMatrix = unconstrainedOrthogonalMultiply(attackerTransitionsVector, defenderTransitionsVector);
-
-										for (var attackerInflicted = 0; attackerInflicted < transitionMatrix.rows; attackerInflicted++) {
-											for (var defenderInflicted = 0; defenderInflicted < transitionMatrix.columns; defenderInflicted++) {
-												var attackerVictims = gravitonLaserVictims(problem.attacker, attackerFull, a, defenderInflicted, options.attacker, options.defender);
-												var defenderVictims = gravitonLaserVictims(problem.defender, defenderFull, d, attackerInflicted, options.defender, options.attacker);
-												ensemble.increment(attackerVictims, defenderVictims, a, d, transitionMatrix.at(attackerInflicted, defenderInflicted) * distribution[a][d]);
-											}
-										}
-									}
-								}
-
-								var subproblems = ensemble.getSubproblems();
-								subproblems.forEach(function (subproblem) {
-									collapseYinFlagship(subproblem, options, problem);
-								});
-								result.push.apply(result, subproblems);
-							} else {
-
-								var attackerTransitions = scale(attackerTransitionsVector, problem.attacker.length + 1);
-								var defenderTransitions = scale(defenderTransitionsVector, problem.defender.length + 1);
-								applyTransitions(problem, attackerTransitions, defenderTransitions, options);
-								collapseYinFlagship(problem, options);
-								result.push(problem);
-							}
-						});
-						return result;
-						function gravitonLaserVictims(fleet, thisSideFleetFull, index, hits, thisSideOptions, opponentSideOptions) {
-							hits = (thisSideFleetFull.some(unitIs(game.UnitType.Flagship)) && thisSideOptions.race === game.Race.Argent) || thisSideOptions.solarFlare ? 0 : hits;
-							if (hits === 0 || index === 0)
-								return structs.Victim.Null;
-							if (!opponentSideOptions.gravitonLaser && !thisSideOptions.nonEuclidean && !fleet.some(unitIs(game.UnitType.Ground)) && !fleet.some(unitIs(game.UnitType.Mech)) && !fleet.some(unitIsOnlyGhost(game.UnitType.Mech))) {
-								var result = new structs.Victim();
-								result._dead = Math.min(hits, fleet.map(absorbsHits).reduce(sum));
-								return result;
-							}
-
-							var ranges = [];
-							var currentRange = null;
-							var i = index - 1;
-							while (0 <= i && 0 < hits) {
-								var unit = fleet[i];
-								if (unit.type === game.UnitType.Fighter && opponentSideOptions.gravitonLaser) {
-									currentRange = null;
-								} else if (unit.type === game.UnitType.Ground || unit.type === game.UnitType.Mech) {
-									currentRange = null;
-								} else {
-									if (currentRange === null) {
-										currentRange = [i + 1, i + 1];
-										ranges.push(currentRange);
-									}
-									currentRange[0]--;
-									hits -= absorbsHits(unit);
-								}
-								i--;
-							}
-							var currentRange = null;
-							// now hit Fighters if needed
-							if (opponentSideOptions.gravitonLaser)
-								for (var i = index - 1; 0 <= i && 0 < hits; --i) {
-									if (fleet[i].type === game.UnitType.Fighter) {
-										if (currentRange === null) {
-											currentRange = [i + 1, i + 1];
-											ranges.push(currentRange);
-										}
-										currentRange[0]--;
-										hits -= absorbsHits(fleet[i]); // will always be the same as hits--
-									}
-								}
-							ranges.sort(function (r1, r2) { return r1[0] - r2[0]; });
-							var result = new structs.Victim();
-							ranges.forEach(function (range) { result.addRange(range[0], range[1]); });
-							return result;
-
-							function absorbsHits(unit) {
-								return (unit.isDamageGhost && thisSideOptions.nonEuclidean) ? 2 : 1;
-							}
-
-							function sum(a, b) {
-								return a + b;
-							}
-						}
-					},
-				},*/
-				{
 					name: 'Magen Omega',
 					appliesTo: game.BattleType.Ground,
 					execute: function (problemArray, attackerFull, defenderFull, options) {
@@ -1575,7 +1418,7 @@
 			return result;
 		}
 
-		function bombardmentTransitionsVector(attackerFull, defenderFull, options, input, initialBombardment) {
+		function bombardmentTransitionsVector(attackerFull, defenderFull, options,input, initialBombardment) {
 			var bombardmentPossible = !options.defender.conventionsOfWar && (
 				!defenderFull.some(unitShield(options.attacker.disable)) // cheching for units with Planetary Shield
 				|| attackerFull.some(unitIs(game.UnitType.WarSun)) //attacking WarSuns negate their Planetary Shield
@@ -1602,7 +1445,7 @@
 				}
 				bombardmentAttacker=temp;
 			}
-			/*if (options.attacker.race === game.Race.L1Z1X && initialBombardment){
+			if (options.attacker.race === game.Race.L1Z1X && initialBombardment){
 				temp = []
 				dict = {};
 				for (unitType in input[game.SideUnits["attacker"]]){
@@ -1615,7 +1458,7 @@
 					dict[bombardmentAttacker[unit].type]-=1;
 				}
 				bombardmentAttacker=temp;
-			}*/
+			}
 
 			var reroll = options.attacker.jolnarCommander;
 			var attackerAdditional = initialBombardment && options.attacker.argentStrikeWingBombardmentA && options.attacker.race !== game.Race.Argent ? 1 : 0;
@@ -1623,7 +1466,7 @@
 			attackerAdditional += options.attacker.argentCommander && !(initialBombardment && options.attacker.argentCommanderFirstRound) ? 1 : 0;
 			
 			var resultTransitionsVector=fleetTransitionsVector(bombardmentAttacker, game.ThrowType.Bombardment, attackerModifier, moreDieForStrongestUnit(bombardmentAttacker, game.ThrowType.Bombardment, attackerAdditional), reroll, options.attacker);
-
+			console.log(resultTransitionsVector);
 			return resultTransitionsVector;
 
 			function hasBombardment(unit) {
