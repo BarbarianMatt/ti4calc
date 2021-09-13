@@ -620,7 +620,6 @@
 											for (var defenderInflicted = 0; defenderInflicted < transitionMatrix.columns; defenderInflicted++) {
 												var attackerVictims = gravitonLaserVictims(problem.attacker, attackerFull, a, defenderInflicted, options.attacker, options.defender);
 												var defenderVictims = gravitonLaserVictims(problem.defender, defenderFull, d, attackerInflicted, options.defender, options.attacker);
-												console.log(attackerVictims);
 												ensemble.increment(attackerVictims, defenderVictims, a, d, transitionMatrix.at(attackerInflicted, defenderInflicted) * distribution[a][d]);
 											}
 										}

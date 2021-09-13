@@ -10,7 +10,7 @@
 	}
 
 	root.imitationIterations = 50000;
-	root.tgs = { attacker: {tg:0, yinAgentUses:0, reflectiveShieldingUses:0, maneuveringJetsUses:0, directHitUses:0, tgHacan:0}, defender: {tg:0, yinAgentUses:0, reflectiveShieldingUses:0, maneuveringJetsUses:0, directHitUses:0, tgHacan:0} };
+	root.storedValues = { attacker: {tgsEarned:0, yinAgentUses:0, reflectiveShieldingUses:0, directHitUses:0, tgsSpent:0}, defender: {tgsEarned:0, yinAgentUses:0, reflectiveShieldingUses:0, directHitUses:0, tgsSpent:0} };
 	root.imitator = (function () {
 
 		var prebattleActions = initPrebattleActions();
@@ -24,27 +24,24 @@
 			var battleType = input.battleType;
 			var options = input.options || { attacker: {}, defender: {} };
 			options = options || { attacker: {}, defender: {} };
-			root.tgs.attacker.tg=0;
-			root.tgs.defender.tg=0;
-			root.tgs.attacker.tgHacan=0;
-			root.tgs.defender.tgHacan=0;
 			var result = new structs.EmpiricalDistribution();
 			var finalAttacker = game.expandFleet(input, game.BattleSide.attacker).filterForBattle()
 				.map(function (unit) { return [unit.shortType]; });
 			var finalDefender = game.expandFleet(input, game.BattleSide.defender).filterForBattle()
 				.map(function (unit) { return [unit.shortType]; });
+			var defaultValues = { attacker: {tgsEarned:0, yinAgentUses:0, reflectiveShieldingUses:0, directHitUses:0, tgsSpent:0}, 
+								defender: {tgsEarned:0, yinAgentUses:0, reflectiveShieldingUses:0, directHitUses:0, tgsSpent:0} };
+			root.storedValues = defaultValues;
 			for (var i = 0; i < root.imitationIterations; ++i) {
 				var attacker = game.expandFleet(input, game.BattleSide.attacker);
 				var defender = game.expandFleet(input, game.BattleSide.defender);
 
-				root.tgs.attacker.yinAgentUses=options.attacker.yinAgentUses;
-				root.tgs.attacker.reflectiveShieldingUses=options.attacker.reflectiveShieldingUses;
-				root.tgs.attacker.maneuveringJetsUses=options.attacker.maneuveringJetsUses;
-				root.tgs.attacker.directHitUses=options.attacker.directHitUses;
-				root.tgs.defender.yinAgentUses=options.defender.yinAgentUses;
-				root.tgs.defender.reflectiveShieldingUses=options.defender.reflectiveShieldingUses;
-				root.tgs.defender.maneuveringJetsUses=options.defender.maneuveringJetsUses;
-				root.tgs.defender.directHitUses=options.defender.directHitUses;
+				root.storedValues.attacker.yinAgentUses=options.attacker.yinAgentUses;
+				root.storedValues.attacker.reflectiveShieldingUses=options.attacker.reflectiveShieldingUses;
+				root.storedValues.attacker.directHitUses=options.attacker.directHitUses;
+				root.storedValues.defender.yinAgentUses=options.defender.yinAgentUses;
+				root.storedValues.defender.reflectiveShieldingUses=options.defender.reflectiveShieldingUses;
+				root.storedValues.defender.directHitUses=options.defender.directHitUses;
 
 				var survivors = imitateBattle(attacker, defender, battleType, options,input);
 
@@ -68,11 +65,11 @@
 					result.increment(0);
 			}
 			result.normalize();
-			attackerAvgTG = (tgs.attacker.tg===0 || tgs.attacker.tg===null) ? null: Math.round((tgs.attacker.tg/root.imitationIterations)*1000)/1000;
-			defenderAvgTG = (tgs.defender.tg===0 || tgs.defender.tg===null) ? null: Math.round((tgs.defender.tg/root.imitationIterations)*1000)/1000;
+			attackerTgsEarned = (storedValues.attacker.tgsEarned===0 || storedValues.attacker.tgsEarned===null) ? null: Math.round((storedValues.attacker.tgsEarned/root.imitationIterations)*100)/100  + "  EA";
+			defenderTgsEarned = (storedValues.defender.tgsEarned===0 || storedValues.defender.tgsEarned===null) ? null: Math.round((storedValues.defender.tgsEarned/root.imitationIterations)*100)/100  + " ED";
 
-			attackerAvgHacanTG = (tgs.attacker.tgHacan===0 || tgs.attacker.tgHacan===null) ? null: Math.round((tgs.attacker.tgHacan/root.imitationIterations)*1000)/1000;
-			defenderAvgHacanTG = (tgs.defender.tgHacan===0 || tgs.defender.tgHacan===null) ? null: Math.round((tgs.defender.tgHacan/root.imitationIterations)*1000)/1000;
+			attackerTgsSpent = (storedValues.attacker.tgsSpent===0 || storedValues.attacker.tgsSpent===null) ? null: Math.round((storedValues.attacker.tgsSpent/root.imitationIterations)*100)/100 + " SA";
+			defenderTgsSpent = (storedValues.defender.tgsSpent===0 || storedValues.defender.tgsSpent===null) ? null: Math.round((storedValues.defender.tgsSpent/root.imitationIterations)*100)/100 + " SS";
 			return [{
 				distribution: result,
 				attacker: finalAttacker.map(function (set) {
@@ -85,7 +82,7 @@
 						return prev + item;
 					});
 				}),
-			},attackerAvgTG,defenderAvgTG,attackerAvgHacanTG, defenderAvgHacanTG];
+			},attackerTgsEarned,defenderTgsEarned,attackerTgsSpent,defenderTgsSpent];
 		}
 
 		function imitateBattle(attackerFull, defenderFull, battleType, options,input) {
@@ -95,7 +92,6 @@
 			var actions = prebattleActions;
 			var aDeadUnits=[];
 			var dDeadUnits=[];
-			var aTemp=[];
 			if (options.attacker.race === game.Race.Mentak || options.defender.race === game.Race.Mentak) {
 				actions = prebattleActions.slice();
 				var t = actions[1];
@@ -122,16 +118,17 @@
 			attacker.sort(attacker.comparer);
 			defender.sort(defender.comparer);
 			var round = 0;
-			var losePlanetary = attackerFull.some(unitIs(game.UnitType.WarSun)) || (attackerFull.some(unitIs(game.UnitType.Flagship)) && options.attacker.race === game.Race.Letnev);
+			var losePlanetaryDefender = attackerFull.some(unitIs(game.UnitType.WarSun)) || (attackerFull.some(unitIs(game.UnitType.Flagship)) && options.attacker.race === game.Race.Letnev);
+			var losePlanetaryAttacker = defenderFull.some(unitIs(game.UnitType.WarSun)) || (defenderFull.some(unitIs(game.UnitType.Flagship)) && options.defender.race === game.Race.Letnev);
 			var magenDefenseActivatedDefender = battleType === game.BattleType.Ground &&
 				options.defender.magenDefense &&
 				defenderFull.some(unitShield(options.attacker.disable)) &&
-				!losePlanetary;
-
+				!losePlanetaryDefender;
+			
 			var magenDefenseActivatedAttacker = battleType === game.BattleType.Ground &&
 				options.attacker.magenDefense &&
-				attackerFull.some(unitShield(options.attacker.disable));
-			var aTemp=aDeadUnits;
+				attackerFull.some(unitShield(options.defender.disable)) &&
+				!losePlanetaryAttacker;
 			while (hasUnits(attacker) && hasUnits(defender) || (doAtLeastOneRound && round === 0)) {
 				round++;
 				
@@ -178,24 +175,26 @@
 				winnuFlagships(defender, options.defender, attacker);
 				var attackerInflictedToNonFighters = 0, attackerInflictedToEverything = 0;
 				var defenderInflictedToNonFighters = 0, defenderInflictedToEverything = 0;
-				aTemp = options.attacker.daxcive ? aTemp : [];
-				var attackerRolling = attacker.concat(aTemp);
 				if (options.attacker.race === game.Race.L1Z1X && attacker.some(unitIs(game.UnitType.Flagship))) {
-					attackerInflictedToNonFighters = rollDice(attackerRolling.filter(flagshipOrDreadnought), game.ThrowType.Battle, attackerBoost, attackerReroll, attackerBoostRoll, options.attacker);
-					attackerInflictedToEverything = rollDice(attackerRolling.filter(not(flagshipOrDreadnought)), game.ThrowType.Battle, attackerBoost, attackerReroll, attackerBoostRoll, options.attacker);
+					attackerInflictedToNonFighters = rollDice(attacker.filter(flagshipOrDreadnought), game.ThrowType.Battle, attackerBoost, attackerReroll, attackerBoostRoll, options.attacker);
+					attackerInflictedToEverything = rollDice(attacker.filter(not(flagshipOrDreadnought)), game.ThrowType.Battle, attackerBoost, attackerReroll, attackerBoostRoll, options.attacker);
 				} else
-					attackerInflictedToEverything = rollDice(attackerRolling, game.ThrowType.Battle, attackerBoost, attackerReroll, attackerBoostRoll, options.attacker);
+					attackerInflictedToEverything = rollDice(attacker, game.ThrowType.Battle, attackerBoost, attackerReroll, attackerBoostRoll, options.attacker);
 				if (options.defender.race === game.Race.L1Z1X && defender.some(unitIs(game.UnitType.Flagship))) {
 					defenderInflictedToNonFighters = rollDice(defender.filter(flagshipOrDreadnought), game.ThrowType.Battle, defenderBoost, defenderReroll, defenderBoostRoll, options.defender);
 					defenderInflictedToEverything = rollDice(defender.filter(not(flagshipOrDreadnought)), game.ThrowType.Battle, defenderBoost, defenderReroll, defenderBoostRoll, options.defender);
 				} else
 					defenderInflictedToEverything = rollDice(defender, game.ThrowType.Battle, defenderBoost, defenderReroll, defenderBoostRoll, options.defender);
+				//console.log("attacker damage: " + JSON.parse(JSON.stringify(attackerInflictedToEverything)));
+				//console.log("defender damage: " + JSON.parse(JSON.stringify(defenderInflictedToEverything)));
 				if (round === 1 && magenDefenseActivatedDefender) {
 					attackerInflictedToEverything = 0;
 				}
 				if (round === 1 && magenDefenseActivatedAttacker) {
 					defenderInflictedToEverything = 0;
 				}
+				//console.log("attacker damage: " + JSON.parse(JSON.stringify(attackerInflictedToEverything)));
+				//console.log("defender damage: " + JSON.parse(JSON.stringify(defenderInflictedToEverything)));
 				if (battleType === game.BattleType.Ground) {
 					var attackerAdditional = 0;
 					var defenderAdditional = 0;
@@ -209,33 +208,27 @@
 					defenderInflictedToEverything += defenderAdditional;
 				}
 
-				/*console.log(JSON.parse(JSON.stringify(attackerRolling)));
-				console.log("attacker damage " + attackerInflictedToEverything);
-				console.log("defender damage " + defenderInflictedToEverything);*/
 				[attackerInflictedToNonFighters,defenderInflictedToNonFighters]=sustainDamageStep(attacker, attackerInflictedToNonFighters, defender, defenderInflictedToNonFighters,
 				true, [null,notFighterShip(true)], [null,notFighterShip(true)], options,input);
 				[attackerInflictedToEverything,defenderInflictedToEverything]=sustainDamageStep(attacker, attackerInflictedToEverything, defender, defenderInflictedToEverything,
 				true, [null,null], [null,null], options,input);
-				/*console.log(JSON.parse(JSON.stringify(attacker)));
-				console.log("attacker damage " + attackerInflictedToEverything);
-				console.log("defender damage " + defenderInflictedToEverything);
-				console.log("end");*/
+
 				var A1 = applyDamage(attacker, defenderInflictedToNonFighters, options.attacker, null, notFighterShip(true));
 				var A2 = applyDamage(attacker, defenderInflictedToEverything, options.attacker);
 				var D1 = applyDamage(defender, attackerInflictedToNonFighters, options.defender, null, notFighterShip(true));
 				var D2 = applyDamage(defender, attackerInflictedToEverything, options.defender);
-				//console.log(JSON.parse(JSON.stringify(attacker)));
+
 				var aDeadUnits=A1.concat(A2);
 				var dDeadUnits=D1.concat(D2);
 
 				destroyedUnits(aDeadUnits,dDeadUnits,attacker,defender,true,options,input);
-				//console.log(JSON.parse(JSON.stringify(attacker)));
-				//console.log("end");
+
+
 				if (options.attacker.duraniumArmor)
 					repairUnit(attacker);
 				if (options.defender.duraniumArmor)
 					repairUnit(defender);
-
+				//console.log(JSON.parse(JSON.stringify(defender)));
 				if (options.attacker.race === game.Race.L1Z1X && battleType === game.BattleType.Ground) { // Harrow
 					// https://www.reddit.com/r/twilightimperium/comments/g82tk6/ground_combat_when_one_side_didnt_come/
 					// https://boardgamegeek.com/thread/2286628/does-ground-combat-still-occur-if-invading-ground
@@ -243,6 +236,7 @@
 						return a.name === 'Bombardment';
 					}).execute(attacker, defender, attackerFull, defenderFull, options, input, false);
 				}
+				//console.log(JSON.parse(JSON.stringify(defender)));
 				// https://boardgamegeek.com/thread/1904694/how-do-you-resolve-endless-battles
 				if ((// both sides have Duranium Armor
 				options.attacker.duraniumArmor && options.defender.duraniumArmor &&
@@ -271,7 +265,6 @@
 					attacker.splice(0);
 					break;
 				}
-				aTemp = aDeadUnits;
 			}
 			
 			return { attacker: attacker, defender: defender };
@@ -386,11 +379,11 @@
 			return [attackerHits,defenderHits];
 
 			function searchForSustainDamage(fleet,myHits,opponentHits,mySide, hardPredicate, softPredicate){
-				for (var i = fleet.length - 1; 0 <= i && 0 < opponentHits; i--) {
+				for (var i = fleet.length - 1; Math.max(fleet.length - opponentHits,0) <= i && 0 < opponentHits; i--) {
 					var unit = fleet[i];
 					if (unit.isDamageGhost && (combat || unit.typeGroundForce) && hardPredicate(unit) && (!softPredicate || softPredicate(unit))){
 						if (options[mySide].letnevCommander)
-							root.tgs[mySide].tg++;
+							root.storedValues[mySide].tgsEarned++;
 						opponentHits=Math.max(opponentHits-(options[mySide].nonEuclidean ? 2 : 1),0);
 						unit.damageCorporeal.damaged = true;
 						unit.damageCorporeal.damagedThisRound = true;
@@ -404,7 +397,7 @@
 						var unit = fleet[i];
 						if (unit.isDamageGhost && (combat || unit.typeGroundForce) && hardPredicate(unit)){
 							if (options[mySide].letnevCommander)
-								root.tgs[mySide].tg++;
+								root.storedValues[mySide].tgsEarned++;
 							opponentHits=Math.max(opponentHits-(options[mySide].nonEuclidean ? 2 : 1),0);
 							unit.damageCorporeal.damaged = true;
 							unit.damageCorporeal.damagedThisRound = true;
@@ -417,9 +410,9 @@
 				return [false,myHits,opponentHits,null];
 
 				function sustainDamageEffects(unit){
-					if (root.tgs[mySide].reflectiveShieldingUses > 0 && combat && unit.typeShip){
+					if (root.storedValues[mySide].reflectiveShieldingUses > 0 && combat && unit.typeShip){
 						myHits+=2;
-						root.tgs[mySide].reflectiveShieldingUses--;
+						root.storedValues[mySide].reflectiveShieldingUses--;
 					}
 					if (options[mySide].race === root.Race.Sardakk && unit.type === game.UnitType.Mech && combat && !options[mySide].articlesOfWar)
 						myHits++;
@@ -428,11 +421,11 @@
 
 			function directHits(opponentSustains,opponentFleet,mySide,opponentSide,options,input){
 				organizeFleet(opponentSustains,opponentSide,options,input);
-				for (var i = 0; i < opponentSustains.length && i < root.tgs[mySide].directHitUses;i++){
+				for (var i = 0; i < opponentSustains.length && i < root.storedValues[mySide].directHitUses;i++){
 					var unit = opponentSustains[i].damageCorporeal;
 					if (unit && unit.typeShip && (unit.type !== game.UnitType.Dreadnought || !(input[root.SideUnits[opponentSide]][UnitType.Dreadnought] || {}).upgraded)){
 						var destroyedUnit=opponentFleet.splice(opponentFleet.indexOf(unit),1);
-						root.tgs[mySide].directHitUses--;
+						root.storedValues[mySide].directHitUses--;
 						if (mySide ==="attacker")
 							destroyedUnits([],[destroyedUnit], attackerFleet, defenderFleet,combat,options,input);
 						else 
@@ -464,10 +457,10 @@
 					var rollResult = rollDie();
 					if (unit.type === game.UnitType.Flagship && unit.race === game.Race.JolNar && 8 < rollResult)
 						totalRoll += 2;
-					if (thisSideOptions.hacanFlagship && rollResult==battleValue && throwType==game.ThrowType.Battle){
+					if (thisSideOptions.hacanFlagship && rollResult===battleValue && throwType===game.ThrowType.Battle){
 						//console.log(unit);
 						rollResult+=1;
-						tgs[thisSideOptions.side].tgHacan++;
+						storedValues[thisSideOptions.side].tgsSpent++;
 					}
 					if (battleValue <= rollResult + modifierFunction(unit)){
 						totalRoll++;
@@ -507,25 +500,27 @@
 					execute: function (attacker, defender, attackerFull, defenderFull, options, input) {
 						var attackerModifier = options.defender.antimassDeflectors ? -1 : 0;
 						var attackerReroll= options.attacker.jolnarCommander;
-						var attackerAdditional = options.attacker.plasmaScoring;
-						attackerAdditional += options.attacker.argentCommander;
-						attackerAdditional += options.attacker.argentStrikeWingSpaceCannonA && options.attacker.race !== game.Race.Argent;
-
+						var attackerAdditional = options.attacker.plasmaScoring ? 1 : 0;
+						attackerAdditional += options.attacker.argentCommander ? 1 : 0;
+						attackerAdditional += options.attacker.argentStrikeWingSpaceCannonA && options.attacker.race !== game.Race.Argent ? 1 : 0;
 						var attackerInflicted = rollDice(attackerFull.filter(hasSpaceCannon), game.ThrowType.SpaceCannon, attackerModifier, attackerReroll, moreDieForStrongestUnit(attackerFull, game.ThrowType.SpaceCannon, attackerAdditional), options.attacker);
-						attackerInflicted= options.defender.solarFlare || (defender.some(unitIs(game.UnitType.Flagship)) && options.defender.race === game.Race.Argent) ? 0 : Math.max(attackerInflicted-root.tgs.defender.maneuveringJetsUses,0);
-						
-						var defenderModifier = options.attacker.antimassDeflectors ? -1 : 0;
-						var defenderReroll= options.defender.jolnarCommander;
-						var defenderAdditional = options.defender.plasmaScoring;
-						defenderAdditional += options.defender.argentCommander;
-						defenderAdditional += options.defender.argentStrikeWingSpaceCannonD && options.defender.race !== game.Race.Argent;
+						attackerInflicted= options.defender.solarFlare || (defender.some(unitIs(game.UnitType.Flagship)) && options.defender.race === game.Race.Argent) ? 0 : Math.max(attackerInflicted- (options.defender.maneuveringJets ? 1 : 0),0);
+						attackerInflicted = options.attacker.noSpaceCannon ? 0 : attackerInflicted;
 
+						var defenderModifier = options.attacker.antimassDeflectors ? -1 : 0;
+						var defenderReroll= options.defender.jolnarCommander ;
+						var defenderAdditional = options.defender.plasmaScoring ? 1 : 0;
+						defenderAdditional += options.defender.argentCommander ? 1 : 0;
+						defenderAdditional += options.defender.argentStrikeWingSpaceCannonD && options.defender.race !== game.Race.Argent ? 1 : 0;
 						var defenderInflicted = rollDice(defenderFull.filter(hasSpaceCannon), game.ThrowType.SpaceCannon, defenderModifier, defenderReroll, moreDieForStrongestUnit(defenderFull, game.ThrowType.SpaceCannon, defenderAdditional), options.defender);
-						defenderInflicted= options.attacker.solarFlare || (attacker.some(unitIs(game.UnitType.Flagship)) && options.attacker.race === game.Race.Argent) ? 0 : Math.max(defenderInflicted-root.tgs.attacker.maneuveringJetsUses,0);
+						defenderInflicted= options.attacker.solarFlare || (attacker.some(unitIs(game.UnitType.Flagship)) && options.attacker.race === game.Race.Argent) ? 0 : Math.max(defenderInflicted-(options.attacker.maneuveringJets ? 1 : 0),0);
+						defenderInflicted = options.defender.noSpaceCannon ? 0 : defenderInflicted;
+						
 						var attackerPredicate = options.attacker.gravitonLaser ? notFighterShip(false) : null;
 						var defenderPredicate = options.defender.gravitonLaser ? notFighterShip(false) : null;
 						[attackerInflicted,defenderInflicted]=sustainDamageStep(attacker, attackerInflicted, defender, defenderInflicted, false,
 						[null,attackerPredicate], [null,defenderPredicate], options,input);
+						
 						var aDeadUnits = applyDamage(defender, attackerInflicted, options.defender, validUnit(false), attackerPredicate);
 						var dDeadUnits = applyDamage(attacker, defenderInflicted, options.attacker, validUnit(false), defenderPredicate);
 						destroyedUnits(aDeadUnits,dDeadUnits,attacker,defender,false,options,input);
@@ -611,7 +606,6 @@
 					name: 'Anti-Fighter Barrage',
 					appliesTo: game.BattleType.Space,
 					execute: function (attacker, defender, attackerFull, defenderFull, options, input) {
-
 						var attackerBarrageUnits = attacker.filter(hasBarrage);
 						var defenderBarrageUnits = defender.filter(hasBarrage);
 						var attackerReroll= options.attacker.jolnarCommander;
@@ -623,7 +617,9 @@
 						defenderExtraDie += options.defender.argentStrikeWingBarrageD && options.defender.race !== game.Race.Argent ? 1 : 0;
 
 						var attackerInflicted = rollDice(attackerBarrageUnits, game.ThrowType.Barrage, 0, attackerReroll, moreDieForStrongestUnit(attackerBarrageUnits, game.ThrowType.Barrage, attackerExtraDie), options.attacker);
+						attackerInflicted = options.attacker.noBarrage ? 0 : attackerInflicted;
 						var defenderInflicted = rollDice(defenderBarrageUnits, game.ThrowType.Barrage, 0, defenderReroll, moreDieForStrongestUnit(defenderBarrageUnits, game.ThrowType.Barrage, defenderExtraDie), options.defender);
+						defenderInflicted = options.defender.noBarrage ? 0 : defenderInflicted;
 
 						if ((attackerInflicted > defender.filter(unitIsFighter()).length) && options.attacker.race === game.Race.Argent){
 							var damages=attackerInflicted-defender.filter(unitIsFighter()).length;
@@ -684,10 +680,11 @@
 							|| options.attacker.race === game.Race.Letnev && attackerFull.some(unitIs(game.UnitType.Flagship)) // Letnev Flagship negates Planetary Shield as well
 							|| options.attacker.L1Z1XCommander // L1Z1X Commander ignores all planetary shield
 						);
-						if (!bombardmentPossible) return;
+						if (!bombardmentPossible || options.attacker.noBombardment) return;
 						
 						var bombardmentAttacker = attackerFull.filter(hasBombardment);
-						if (options.attacker.race === game.Race.L1Z1X){
+						//console.log(JSON.parse(JSON.stringify(bombardmentAttacker)));
+						if (options.attacker.race === game.Race.L1Z1X && !initialBombardment){
 							var temp=[];
 							var thisSideCounters = input[game.SideUnits["attacker"]];
 							var counter = thisSideCounters[game.UnitType.Mech] || { count: 0 };
@@ -703,6 +700,7 @@
 							}
 							bombardmentAttacker=temp;
 						}
+						//console.log(JSON.parse(JSON.stringify(bombardmentAttacker)));
 						if (options.attacker.race === game.Race.L1Z1X && initialBombardment){
 							temp = []
 							dict = {};
@@ -717,21 +715,77 @@
 							}
 							bombardmentAttacker=temp;
 						}
+						//console.log(JSON.parse(JSON.stringify(bombardmentAttacker)));
 						var attackerModifier = options.defender.bunker ? -4 : 0;
 						var reroll = options.attacker.jolnarCommander;
 						var attackerAdditional = initialBombardment && options.attacker.argentStrikeWingBombardmentA && options.attacker.race !== game.Race.Argent ? 1 : 0;
 						attackerAdditional += options.attacker.plasmaScoring && !(initialBombardment && options.attacker.plasmaScoringFirstRound) ? 1 : 0;
 						attackerAdditional += options.attacker.argentCommander && !(initialBombardment && options.attacker.argentCommanderFirstRound) ? 1 : 0;
-
+						//console.log(JSON.parse(JSON.stringify("end")));
 						var attackerInflicted = rollDice(bombardmentAttacker, game.ThrowType.Bombardment, attackerModifier, reroll, moreDieForStrongestUnit(bombardmentAttacker, game.ThrowType.Bombardment, attackerAdditional), options.attacker);
 						var defenderInflicted = 0;
+						if (options.attacker.x89Omega){
+							var killInfantryConservative = conservativeX89(defender,attackerInflicted,options.defender);
+							var killInfantrynonConservative = nonConservativeX89(defender,attackerInflicted,options.defender);
 
-						[attackerInflicted,defenderInflicted]=sustainDamageStep(attacker, attackerInflicted, defender, defenderInflicted, !initialBombardment, [null,null], [null,null], options,input);
-						var aDeadUnits = applyDamage(attacker,defenderInflicted,options.attacker);
-						var dDeadUnits = applyDamage(defender,attackerInflicted,options.defender);
+							if (options.defender.x89Conservative ? killInfantryConservative : killInfantrynonConservative){
+								attackerInflicted-=defender.filter(unitIsInfantry).length;
+								[attackerInflicted,defenderInflicted]=sustainDamageStep(attacker, attackerInflicted, defender, defenderInflicted, !initialBombardment, [null,null], [null,null], options,input);
+								var dDeadUnits = applyDamage(defender,defender.filter(unitIsInfantry).length+attackerInflicted,options.defender,null,unitIsInfantry);
+								var dDeadUnits = applyDamage(defender,100000,options.defender,unitIsInfantry);
+							} else if (options.defender.x89Conservative && !killInfantryConservative){
+								[attackerInflicted,defenderInflicted]=sustainDamageStep(attacker, attackerInflicted, defender, defenderInflicted, !initialBombardment, [null,null], [null,null], options,input);
+								var dDeadUnits = applyDamage(defender,attackerInflicted,options.defender,null,unitIsNotInfantry);
+							} else if (!options.defender.x89Conservative && !killInfantryConservative){
+								[attackerInflicted,defenderInflicted]=sustainDamageStep(attacker, attackerInflicted, defender, defenderInflicted, !initialBombardment, [null,null], [null,null], options,input);
+								var dDeadUnits = applyDamage(defender,attackerInflicted,options.defender);
+							}
+							var aDeadUnits = applyDamage(attacker,defenderInflicted,options.attacker);
+						} else {
+							var defenderPredicate = initialBombardment && options.defender.race === game.Race.Sardakk && options.defender.sustainMechs ? mechsHittable() : null;
+							[attackerInflicted,defenderInflicted]=sustainDamageStep(attacker, attackerInflicted, defender, defenderInflicted, !initialBombardment, [null,null], [defenderPredicate,null], options,input);
+							var aDeadUnits = applyDamage(attacker,defenderInflicted,options.attacker);
+							var dDeadUnits = applyDamage(defender,attackerInflicted,options.defender,null,defenderPredicate);
+						}
 						destroyedUnits(aDeadUnits,dDeadUnits,attacker,defender,false,options,input);
 						function hasBombardment(unit) {
 							return unit.bombardmentDice !== 0;
+						}
+						function unitIsInfantry(unit){			
+								return unit.type === game.UnitType.Ground;
+						}
+						function unitIsNotInfantry(unit){			
+							return unit.type !== game.UnitType.Ground;
+					}
+						function mechsHittable() {
+							return function (unit) {
+								return unit.type !== game.UnitType.Mech;
+							};
+						}
+						function absorbsHits(thisSideOptions){
+							return function (unit) {
+								return (unit.isDamageGhost && thisSideOptions.nonEuclidean) ? 2 : 1;
+							}
+						}
+						function nonConservativeX89(fleet,hits,thisSideOptions){
+							var tempHits=hits;
+							for (var i = fleet.length - 1; 0 <= i && 0 < tempHits; --i) {
+								var unit = fleet[i];
+								if (unit.type!==game.UnitType.Ground)
+									tempHits -= absorbsHits(thisSideOptions)(fleet[i]);
+								else
+									return true;
+							}
+							return false;
+						}
+						function conservativeX89(fleet,hits,thisSideOptions){
+							var tempHits=hits;
+							for (var i = fleet.length - 1; 0 <= i && 0 < tempHits; --i) {
+								var unit = fleet[i];
+								if (unit.type !== game.UnitType.Ground)
+									tempHits -= absorbsHits(thisSideOptions)(fleet[i]);
+							}
+							return tempHits>0;
 						}
 					},
 				},
@@ -739,22 +793,31 @@
 					name: 'Space Cannon -> Ground Forces',
 					appliesTo: game.BattleType.Ground,
 					execute: function (attacker, defender, attackerFull, defenderFull, options, input) {
-						if (options.attacker.l4Disruptors) return;
+						if (options.attacker.l4Disruptors || options.defender.noSpaceCannon) return;
 
 						var defenderModifier = options.attacker.antimassDeflectors ? -1 : 0;
 						var spaceCannonUnits = defenderFull.filter(groundForceSpaceCannon);
 						var reroll= options.defender.jolnarCommander;
-						var defenderAdditional = options.defender.plasmaScoring;
-						defenderAdditional += options.defender.argentCommander;
-						defenderAdditional += options.defender.argentStrikeWingSpaceCannonD && options.defender.race !== game.Race.Argent;
+						var defenderAdditional = options.defender.plasmaScoring ? 1 : 0;
+						defenderAdditional += options.defender.argentCommander ? 1 : 0;
+						defenderAdditional += options.defender.argentStrikeWingSpaceCannonD && options.defender.race !== game.Race.Argent ? 1 : 0;
+						
 						var defenderInflicted = rollDice(spaceCannonUnits, game.ThrowType.SpaceCannon, defenderModifier, reroll, moreDieForStrongestUnit(defenderFull, game.ThrowType.SpaceCannon, defenderAdditional), options.defender);
-						defenderInflicted = Math.max(defenderInflicted-root.tgs.attacker.maneuveringJetsUses,0);
+						defenderInflicted = Math.max(defenderInflicted-(options.defender.maneuveringJets ? 1 : 0),0);
+						
 						var attackerInflicted = 0;
+						var attackerPredicate = options.attacker.race === game.Race.Sardakk && options.attacker.sustainMechs ? mechsHittable() : null;
 						[attackerInflicted,defenderInflicted]=sustainDamageStep(attacker, attackerInflicted, defender, defenderInflicted, false,
-						[null,null], [null,null], options,input);
-						var aDeadUnits =applyDamage(attacker, defenderInflicted, options.attacker);
+						[attackerPredicate,null], [null,null], options,input);
+						
+						var aDeadUnits =applyDamage(attacker, defenderInflicted, options.attacker,null,attackerPredicate);
 						var dDeadUnits=[];
 						destroyedUnits(aDeadUnits,dDeadUnits,attacker,defender,false,options,input);
+						function mechsHittable() {
+							return function (unit) {
+								return unit.type !== game.UnitType.Mech;
+							};
+						}
 					},
 				},
 				{
@@ -775,6 +838,7 @@
 										myFleet.splice(i, 1);
 										addUnitBasedOnRace(game.UnitType.Mech,mySide,opponentSide,options,myFleet,opponentFleet,input)
 										organizeFleet(myFleet,mySide,options,input);
+										storedValues[options[mySide].side].tgsSpent+=2;
 										return;
 									}
 								}
@@ -963,7 +1027,7 @@
 					name: 'supercharger',
 					firstRoundOnly: true,
 					apply: function (battleType, round, sideOptions) {
-						return sideOptions.supercharger ? 1 : 0;
+						return round === 1 && sideOptions.supercharger ? 1 : 0;
 					}
 				},
 			];
@@ -1088,9 +1152,9 @@
 				mentakHero(defenderDeadUnits,"attacker","defender",attacker,defender);
 			if (options.defender.mentakHero && combat && input.battleType === root.BattleType.Space)
 				mentakHero(attackerDeadUnits,"defender","attacker",defender,attacker);
-			if (root.tgs.attacker.yinAgentUses>0)
+			if (root.storedValues.attacker.yinAgentUses>0)
 				yinAgent(attackerDeadUnits,"attacker","defender",attacker,defender);
-			if (root.tgs.defender.yinAgentUses>0)
+			if (root.storedValues.defender.yinAgentUses>0)
 				yinAgent(defenderDeadUnits,"defender","attacker",defender,attacker);
 			function yinFlagship(){
 				attackerDeadUnits=attackerDeadUnits.concat(attacker);
@@ -1112,7 +1176,7 @@
 					addUnitBasedOnRace(game.UnitType.Fighter,mySide,opponentSide,options,myFleet,opponentFleet,input);
 					addUnitBasedOnRace(game.UnitType.Fighter,mySide,opponentSide,options,myFleet,opponentFleet,input);
 					organizeFleet(myFleet,mySide,options,input);
-					tgs[mySide].yinAgentUses-=1;
+					storedValues[mySide].yinAgentUses-=1;
 				}
 			}
 		}

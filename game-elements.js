@@ -105,43 +105,55 @@
 		Cabal: "Vuil'Raith Cabal",
 	};
 
-	function Option(title, description, limitedTo) {
+	function Option(title, description, limitedToSide, limitedToUnit, limitedToBattle, limitedToOption) {
 		this.title = title;
 		this.description = description;
-		this.limitedTo = limitedTo;
+		this.limitedToSide = limitedToSide;
+		this.limitedToUnit = limitedToUnit;
+		this.limitedToBattle = limitedToBattle;
+		this.limitedToOption = limitedToOption;
 	}
-
-	Option.prototype.availableFor = function (battleSide) {
-		return this.limitedTo === undefined || this.limitedTo === battleSide;
+	Object.byString = function(o, s) {
+		s = s.replace(/\[(\w+)\]/g, '.$1'); // convert indexes to properties
+		s = s.replace(/^\./, '');           // strip a leading dot
+		var a = s.split('.');
+		for (var i = 0, n = a.length; i < n; ++i) {
+			var k = a[i];
+			if (k in o) {
+				o = o[k];
+			} else {
+				return;
+			}
+		}
+		return o;
+	}
+	Option.prototype.availableFor = function (battleSide, thisSideUnits, battleType, options) {
+		return 	(this.limitedToSide === undefined || this.limitedToSide === battleSide) && 
+				(this.limitedToUnit === undefined || thisSideUnits[this.limitedToUnit].count>0) &&
+				(this.limitedToBattle === undefined || this.limitedToBattle === battleType) &&
+				(this.limitedToOption === undefined || Object.byString(options,this.limitedToOption));
 	};
-	
 	root.ActionCards = {
 		moraleBoost: new Option('Morale Boost 1st round', '+1 dice modifier to all units during the first battle round'),
 		fireTeam: new Option('Fire Team 1st round', 'Reroll dice after first round of invasion combat'),
 		fighterPrototype: new Option('Fighter Prototype', '+2 dice modifier to Fighters during the first battle round'),
-		bunker: new Option('Bunker', '-4 dice modifier to Bombardment rolls', 'defender'),
 		experimentalBattlestation: new Option('Experimental Battlestation', 'Additional unit with Space Cannon 5(x3)'),
 		maneuveringJets: new Option('Maneuvering Jets', 'Cancel 1 Space Cannon hit'),
-		maneuveringJets2A: new Option('Maneuvering Jets', 'Cancel 1 Space Cannon hit','attacker'),
-		maneuveringJets3A: new Option('Maneuvering Jets', 'Cancel 1 Space Cannon hit','attacker'),
-		maneuveringJets4A: new Option('Maneuvering Jets', 'Cancel 1 Space Cannon hit','attacker'),
-		maneuveringJets2D: new Option('Maneuvering Jets', 'Cancel 1 Space Cannon hit','defender'),
-		maneuveringJets3D: new Option('Maneuvering Jets', 'Cancel 1 Space Cannon hit','defender'),
-		maneuveringJets4D: new Option('Maneuvering Jets', 'Cancel 1 Space Cannon hit','defender'),
 		riskDirectHit: new Option('Risk Direct Hit', 'Damage units vulnerable to Direct Hit before killing off fodder'),
+		directHit: new Option('Direct Hit', "After another player's ship uses Sustain Damage, destroy that ship"),
+		directHit2A: new Option('Direct Hit', "After another player's ship uses Sustain Damage, destroy that ship", 'attacker', undefined, undefined, 'attacker.directHit'),
+		directHit2D: new Option('Direct Hit', "After another player's ship uses Sustain Damage, destroy that ship", 'defender', undefined, undefined, 'defender.directHit'),
+		directHit3A: new Option('Direct Hit', "After another player's ship uses Sustain Damage, destroy that ship", 'attacker', undefined, undefined, 'attacker.directHit2A'),
+		directHit3D: new Option('Direct Hit', "After another player's ship uses Sustain Damage, destroy that ship", 'defender', undefined, undefined, 'defender.directHit2D'),
+		directHit4A: new Option('Direct Hit', "After another player's ship uses Sustain Damage, destroy that ship", 'attacker', undefined, undefined, 'attacker.directHit3A'),
+		directHit4D: new Option('Direct Hit', "After another player's ship uses Sustain Damage, destroy that ship", 'defender', undefined, undefined, 'defender.directHit3D'),
 		disable: new Option('Disable', "Opponents' PDS lose Planetary Shield and Space Cannon"),
-		blitz: new Option('Blitz', 'Each non-fighter ship without Bombardment gains Bombardment 6', 'attacker'),
-		rout: new Option('Rout', 'Your Opponent must retreat at the end of the first round of space combat', 'defender'),
 		reflectiveShielding: new Option('Reflective Shielding', 'Produce 2 hits when one of your ships uses Sustain Damage'),
 		solarFlare: new Option('Solar Flare', 'Other players cannot use SPACE CANNON against your ships'),
 		waylay: new Option('Waylay', 'Hits from anti-fighter barrage are produced against all ships'),
-		directHit: new Option('Direct Hit', "After another player's ship uses Sustain Damage, destroy that ship"),
-		directHit2A: new Option('Direct Hit', "After another player's ship uses Sustain Damage, destroy that ship", 'attacker'),
-		directHit3A: new Option('Direct Hit', "After another player's ship uses Sustain Damage, destroy that ship", 'attacker'),
-		directHit4A: new Option('Direct Hit', "After another player's ship uses Sustain Damage, destroy that ship", 'attacker'),
-		directHit2D: new Option('Direct Hit', "After another player's ship uses Sustain Damage, destroy that ship", 'defender'),
-		directHit3D: new Option('Direct Hit', "After another player's ship uses Sustain Damage, destroy that ship", 'defender'),
-		directHit4D: new Option('Direct Hit', "After another player's ship uses Sustain Damage, destroy that ship", 'defender'),
+		blitz: new Option('Blitz', 'Each non-fighter ship without Bombardment gains Bombardment 6', 'attacker'),
+		bunker: new Option('Bunker', '-4 dice modifier to Bombardment rolls', 'defender'),
+		rout: new Option('Rout', 'Your Opponent must retreat at the end of the first round of space combat', 'defender'),
 	};
 
 	root.Technologies = {
@@ -153,17 +165,17 @@
 		magenDefenseOmega: new Option('Magen Defense Grid Ω', '1 hit at the start of ground combat when having structures'),
 		//hasStructure: new Option('Has Structure', 'Attacker has a structure on the planet somehow for Magen Defence Grid Ω', 'attacker'), // not a technology itself, but it's nice to show it close to Magen Defence Grid Ω
 		hasDock: new Option('Has Dock', 'Defender has a dock for Magen Defence Grid Ω', 'defender'), // not a technology itself, but it's nice to show it close to Magen Defence Grid Ω
-		x89Omega: new Option('X-89 Bacterial Weapon Ω (WIP)', 'Destroy all Infantry by bombardment if at least one is destroyed', 'attacker'),
-		x89Conservative: new Option('Assign X-89 Hits Conservatively', 'Sacrifice other Ground Forces if it prevents X-89 Bacterial Weapon Ω from activating', 'defender'),
 		duraniumArmor: new Option('Duranium Armor', 'After each round repair 1 unit that wasn\'t damaged this round'),
 		assaultCannon: new Option('Assault Cannon', 'Opponent destroys 1 non-Fighter ship if you have at least 3 non-Fighters'),
-		daxcive: new Option('Daxcive Animators', 'Ground Forces that die get to roll one more time'),
+		//daxcive: new Option('Daxcive Animators', 'Ground Forces that die get to roll one more time'),
+		x89Omega: new Option('X-89 Bacterial Weapon Ω', 'Destroy all Infantry by bombardment if at least one is destroyed', 'attacker'),
+		x89Conservative: new Option('Assign X-89 Hits Conservatively', 'Sacrifice other Ground Forces if it prevents X-89 Bacterial Weapon Ω from activating', 'defender'),
 	};
 	root.Agendas = {
-		publicizeSchematics: new Option('Publicize Weapon Schematics', 'War Suns don\'t sustain damage'),
-		conventionsOfWar: new Option('Conventions of War', 'No bombardment', 'defender'),
-		prophecyOfIxth: new Option('Prophecy of IXTH', '+1 to Fighters rolls'),
 		articlesOfWar: new Option('Articles of War', 'All Mechs lose their printed abilities except Sustain Damage'),
+		publicizeSchematics: new Option('Publicize Weapon Schematics', 'War Suns don\'t sustain damage'),
+		prophecyOfIxth: new Option('Prophecy of IXTH', '+1 to Fighters rolls'),
+		conventionsOfWar: new Option('Conventions of War', 'No bombardment', 'defender'),
 	};
 	
 	root.Promissory = {
@@ -182,18 +194,21 @@
 
 	root.Miscellaneous = {
 		crownThalnosSafe: new Option('Crown of Thalnos Safely', 'Use the Crown of Thalnos to reroll misses only on units with multiple die that have already hit'),
-		progenitor: new Option('The Progenitor', "Elysium with Titan's hero is in the system"),
+		progenitor: new Option('The Progenitor', "Elysium with Titan's hero is in the system"),	
+		noBombardment: new Option('No Bombardment', 'Choose not to use Bombardment', 'attacker'),
 		nebula: new Option('In a Nebula', 'Defender receives +1 modifier for all ships', 'defender'),
+		noSpaceCannon: new Option('No Space Cannon', 'Choose not to use Space Cannon'),
+		noBarrage: new Option('No Anti-Fighter Barrage', 'Choose not to use Anti-Fighter Barrage'),
 	};
 
 	root.Leaders = {
 		argentCommander: new Option('Argent Flight Commander', 'One additional die for one unit during Space Cannon, Bombardment, and Anti-Fighter Barrage'),
 		argentCommanderFirstRound: new Option('Argent Flight Commander Not Used Initially', "Argent Flight Commander isn't used in the initial Bombardment", 'attacker'),
 		jolnarCommander: new Option('Jol-Nar Commander', 'Reroll Space Cannon, Bombardment, or Anti-Fighter Barrage dice'),
-		L1Z1XCommander: new Option('L1Z1X Commander', 'All units ignore planerary shield', 'attacker'),
 		letnevCommander: new Option('Barony of Letnev Commander', 'Gain 1 trade good when one of your units uses Sustain Damage'),
-		solCommander: new Option('Sol Commander', 'At the start of ground combat, place one infantry', 'defender'),
 		winnuCommander: new Option('Winnu Commander', '+2 dice modifier to all units in the Mecatol Rex system, your home system, and each system that contains a legendary planet'),
+		L1Z1XCommander: new Option('L1Z1X Commander', 'All units ignore planerary shield', 'attacker'),
+		solCommander: new Option('Sol Commander', 'At the start of ground combat, place one infantry', 'defender'),
 		letnevAgent: new Option('Letnev Agent 1st Round', 'One additional die for one ship during the first round of space combat'),
 		solAgent: new Option('Sol Agent 1st Round', 'One additional die for one ground force during the first round of ground combat'),
 		titanAgent: new Option('Titan of Ul Agent', 'Cancel one hit'),
@@ -238,20 +253,23 @@
 	}
 	root.RacialSpecific = {
 		Letnev: {
-			munitions: new Option('Munitions Reserves Every Round', 'Use the Munitions Reserves Ability at the start of every round of space combat'),
-			dunlainMechs: new Option('Deploy Mechs Every Round', "Use the mech's DEPLOY ability to replace an infantry with a mech at the start of every round of ground combat"),
+			munitions: new Option('Munitions Reserves Every Round', 'Use the Munitions Reserves Ability at the start of every round of space combat',undefined,undefined,'Space'),
+			dunlainMechs: new Option('Deploy Mechs Every Round', "Use the mech's DEPLOY ability to replace an infantry with a mech at the start of every round of ground combat",undefined,"Ground", 'Ground'),
 		},
 		Virus: {
-			opponentTech: new Option("Has Opponent's Faction Technonology", "Mechs apply +2 to the result of their combat rolls if Nekro has an 'X' or 'Y' token on 1 or more of the opponent's technologies"),
+			opponentTech: new Option("Has Opponent's Faction Technonology", "Mechs apply +2 to the result of their combat rolls if Nekro has an 'X' or 'Y' token on 1 or more of the opponent's technologies",undefined,"Mech"),
 		},
 		Naalu: {
-			opponentRelicFragment: new Option("Opponent Has a Relic Fragment", "Mechs apply +2 to the result of their combat rolls if Naalu's opponent has a relic fragment"),
+			opponentRelicFragment: new Option("Opponent Has a Relic Fragment", "Mechs apply +2 to the result of their combat rolls if Naalu's opponent has a relic fragment",undefined,"Mech", 'Ground'),
 		},
 		Mahact:{
-			opponentNoToken: new Option("Opponent's Command Token Not in Fleet Pool", "Flagship applys +2 to the result of its combat rolls against an opponent whose command token is not in Mahact's fleet pool"),
+			opponentNoToken: new Option("Opponent's Command Token Not in Fleet Pool", "Flagship applys +2 to the result of its combat rolls against an opponent whose command token is not in Mahact's fleet pool", undefined,"Flagship",'Space'),
 		},
 		Hacan:{
-			infiniteTG: new Option('Unlimited Trade Goods', "Unlimited Trade Goods to use for the flagship's ability"),
+			infiniteTG: new Option('Unlimited Trade Goods', "Unlimited Trade Goods to use for the flagship's ability",undefined,"Flagship",'Space'),
+		},
+		Sardakk:{
+			sustainMechs: new Option("Sustain Only During Combat", "Only use Sustain Damage on your mechs when in combat", undefined,'Mech','Ground'),
 		},
 	};
 
@@ -681,6 +699,7 @@
 				spaceCannonValue: 6,
 				spaceCannonDice: 1,
 				typeGroundForce: true,
+				importance: 2.5,
 			}), 
 		},
 		Cabal: {
@@ -797,6 +816,7 @@
 				spaceCannonValue: 5,
 				spaceCannonDice: 1,
 				typeGroundForce: true,
+				importance: 2.5,
 			}), 
 		},
 		Virus: {
@@ -856,11 +876,6 @@
 		var thisSideCounters = input[root.SideUnits[battleSide]];
 		var standardUnits = Object.assign({},oldStandardUnits);
 		var upgradedUnits = Object.assign({},oldUpgradedUnits);
-
-		//if (thisSideOptions.specOpsII){
-			//upgradedUnits[UnitType.Ground] = root.RaceSpecificUpgrades[root.Race.Sol][UnitType.Ground];
-		//}
-		//console.log(Object.keys(root.VirusUpgrades[root.Race.Virus]));
 		if (thisSideOptions.race === root.Race.Virus){
 			var index = 0;
 			var virusUpgradesList = Object.keys(root.VirusUpgrades[root.Race.Virus]);
@@ -926,14 +941,6 @@
 		thisSideOptions.hacanFlagship = battleType === root.BattleType.Space && thisSideOptions.race === root.Race.Hacan &&
 		(input[root.SideUnits[battleSide]][UnitType.Flagship] || { count: 0 }).count !== 0;
 		thisSideOptions.virusFlagship = virusFlagship;
-		if (battleSide === "attacker"){
-			thisSideOptions.maneuveringJetsUses = 0 + thisSideOptions.maneuveringJets + thisSideOptions.maneuveringJets2A + thisSideOptions.maneuveringJets3A + thisSideOptions.maneuveringJets4A;
-			thisSideOptions.directHitUses=0+thisSideOptions.directHit+thisSideOptions.directHit2A+thisSideOptions.directHit3A+thisSideOptions.directHit4A;
-		}
-		if (battleSide === "defender"){
-			thisSideOptions.maneuveringJetsUses = 0 + thisSideOptions.maneuveringJets + thisSideOptions.maneuveringJets2D + thisSideOptions.maneuveringJets3D + thisSideOptions.maneuveringJets4D;
-			thisSideOptions.directHitUses=0+thisSideOptions.directHit+thisSideOptions.directHit2D+thisSideOptions.directHit3D+thisSideOptions.directHit4D;
-		}
 		if (thisSideOptions.race !== root.Race.Nomad && opponentSideOptions.race !== root.Race.Nomad && battleType === root.BattleType.Space){
 			
 			if (battleSide === "attacker" && options.attacker.nomadCavalry){
@@ -966,7 +973,9 @@
 			result.push(root.StandardUnits.ExperimentalBattlestation);
 		if (thisSideOptions.progenitor)
 			result.push(root.StandardUnits.TheProgenitor);
-
+		//options[battleSide].units=result;
+		options[battleSide].battleType=''+battleType;
+		
 		result.comparer = comparer;
 		result.filterForBattle = filterFleet;
 		return result;
@@ -1097,11 +1106,6 @@
 				}
 			}
 			return;
-		}
-		function unitIs(unitType) {
-			return function (unit) {
-				return unit.type === unitType && !unit.isDamageGhost;
-			};
 		}
 		
 		function filterFleet() {
