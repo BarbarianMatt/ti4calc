@@ -320,14 +320,6 @@
 				if (!value)
 					this.options.defender.directHit4D = false;
 			},
-			'options.attacker.hacanFlagship': function (value) {
-				if (!value)
-					this.options.attacker.infiniteTG = false;
-			},
-			'options.defender.hacanFlagship': function (value) {
-				if (!value)
-					this.options.defender.infiniteTG = false;
-			},
 			'options.attacker.plasmaScoring': function (value) {
 				if (!value)
 					this.options.attacker.plasmaScoringFirstRound = false;

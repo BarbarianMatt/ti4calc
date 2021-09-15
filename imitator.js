@@ -9,8 +9,7 @@
 		game = window;
 	}
 
-	root.imitationIterations = 50000;
-	root.storedValues = { attacker: {tgsEarned:0, yinAgentUses:0, reflectiveShieldingUses:0, directHitUses:0, tgsSpent:0}, defender: {tgsEarned:0, yinAgentUses:0, reflectiveShieldingUses:0, directHitUses:0, tgsSpent:0} };
+	root.imitationIterations = 100000;
 	root.imitator = (function () {
 
 		var prebattleActions = initPrebattleActions();
@@ -42,7 +41,7 @@
 				root.storedValues.defender.yinAgentUses=options.defender.yinAgentUses;
 				root.storedValues.defender.reflectiveShieldingUses=options.defender.reflectiveShieldingUses;
 				root.storedValues.defender.directHitUses=options.defender.directHitUses;
-
+				//console.log(JSON.parse(JSON.stringify(options.attacker)));
 				var survivors = imitateBattle(attacker, defender, battleType, options,input);
 
 				if (survivors.attacker.length !== 0) {
@@ -65,10 +64,10 @@
 					result.increment(0);
 			}
 			result.normalize();
-			attackerTgsEarned = (storedValues.attacker.tgsEarned===0 || storedValues.attacker.tgsEarned===null) ? null: Math.round((storedValues.attacker.tgsEarned/root.imitationIterations)*100)/100  + "  EA";
+			attackerTgsEarned = (storedValues.attacker.tgsEarned===0 || storedValues.attacker.tgsEarned===null) ? null: Math.round((storedValues.attacker.tgsEarned/root.imitationIterations)*100)/100  + " EA";
 			defenderTgsEarned = (storedValues.defender.tgsEarned===0 || storedValues.defender.tgsEarned===null) ? null: Math.round((storedValues.defender.tgsEarned/root.imitationIterations)*100)/100  + " ED";
 
-			attackerTgsSpent = (storedValues.attacker.tgsSpent===0 || storedValues.attacker.tgsSpent===null) ? null: Math.round((storedValues.attacker.tgsSpent/root.imitationIterations)*100)/100 + " SA";
+			attackerTgsSpent = (storedValues.attacker.tgsSpent===0 || storedValues.attacker.tgsSpent===null) ? null: Math.round((storedValues.attacker.tgsSpent/root.imitationIterations)*1000)/1000 + " SA";
 			defenderTgsSpent = (storedValues.defender.tgsSpent===0 || storedValues.defender.tgsSpent===null) ? null: Math.round((storedValues.defender.tgsSpent/root.imitationIterations)*100)/100 + " SS";
 			return [{
 				distribution: result,
@@ -207,12 +206,14 @@
 					attackerInflictedToEverything += attackerAdditional;
 					defenderInflictedToEverything += defenderAdditional;
 				}
-
+				//console.log(JSON.parse(JSON.stringify(defender)));
 				[attackerInflictedToNonFighters,defenderInflictedToNonFighters]=sustainDamageStep(attacker, attackerInflictedToNonFighters, defender, defenderInflictedToNonFighters,
 				true, [null,notFighterShip(true)], [null,notFighterShip(true)], options,input);
 				[attackerInflictedToEverything,defenderInflictedToEverything]=sustainDamageStep(attacker, attackerInflictedToEverything, defender, defenderInflictedToEverything,
 				true, [null,null], [null,null], options,input);
-
+				//console.log("attacker damage: " + JSON.parse(JSON.stringify(attackerInflictedToEverything)));
+				//console.log(JSON.parse(JSON.stringify(defender)));
+				//console.log("end");
 				var A1 = applyDamage(attacker, defenderInflictedToNonFighters, options.attacker, null, notFighterShip(true));
 				var A2 = applyDamage(attacker, defenderInflictedToEverything, options.attacker);
 				var D1 = applyDamage(defender, attackerInflictedToNonFighters, options.defender, null, notFighterShip(true));
@@ -420,17 +421,21 @@
 			}
 
 			function directHits(opponentSustains,opponentFleet,mySide,opponentSide,options,input){
-				organizeFleet(opponentSustains,opponentSide,options,input);
-				for (var i = 0; i < opponentSustains.length && i < root.storedValues[mySide].directHitUses;i++){
-					var unit = opponentSustains[i].damageCorporeal;
-					if (unit && unit.typeShip && (unit.type !== game.UnitType.Dreadnought || !(input[root.SideUnits[opponentSide]][UnitType.Dreadnought] || {}).upgraded)){
-						var destroyedUnit=opponentFleet.splice(opponentFleet.indexOf(unit),1);
-						root.storedValues[mySide].directHitUses--;
-						if (mySide ==="attacker")
-							destroyedUnits([],[destroyedUnit], attackerFleet, defenderFleet,combat,options,input);
-						else 
-							destroyedUnits([destroyedUnit],[],attackerFleet, defenderFleet, combat, options,input);
-						return false;
+				if (root.storedValues[mySide].directHitUses>0){
+					organizeFleet(opponentSustains,opponentSide,options,input);
+					//console.log(JSON.parse(JSON.stringify(opponentSustains)));
+					for (var i = 0; i < opponentSustains.length && i < root.storedValues[mySide].directHitUses;i++){
+						var unit = opponentSustains[i].damageCorporeal;
+
+						if (unit && unit.typeShip && (unit.type !== game.UnitType.Dreadnought || !(input[root.SideUnits[opponentSide]][UnitType.Dreadnought] || {}).upgraded)){
+							var destroyedUnit=opponentFleet.splice(opponentFleet.indexOf(unit),1);
+							root.storedValues[mySide].directHitUses--;
+							if (mySide ==="attacker")
+								destroyedUnits([],[destroyedUnit], attackerFleet, defenderFleet,combat,options,input);
+							else 
+								destroyedUnits([destroyedUnit],[],attackerFleet, defenderFleet, combat, options,input);
+							return false;
+						}
 					}
 				}
 				return true;
@@ -452,12 +457,11 @@
 				var unit = fleet[i];
 				var battleValue = unit[game.ThrowValues[throwType]];
 				var diceCount = unit[game.ThrowDice[throwType]] + extraModifierFunction(unit);
-
 				for (var die = 0; die < diceCount; ++die) {
 					var rollResult = rollDie();
 					if (unit.type === game.UnitType.Flagship && unit.race === game.Race.JolNar && 8 < rollResult)
 						totalRoll += 2;
-					if (thisSideOptions.hacanFlagship && rollResult===battleValue && throwType===game.ThrowType.Battle){
+					if (thisSideOptions.infiniteTG && rollResult+modifierFunction(unit)+1===battleValue && throwType===game.ThrowType.Battle){
 						//console.log(unit);
 						rollResult+=1;
 						storedValues[thisSideOptions.side].tgsSpent++;

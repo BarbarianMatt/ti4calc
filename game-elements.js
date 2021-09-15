@@ -105,7 +105,8 @@
 		Cabal: "Vuil'Raith Cabal",
 	};
 
-	function Option(title, description, limitedToSide, limitedToUnit, limitedToBattle, limitedToOption) {
+	function Option(title, description, limitedToSide, limitedToUnit, limitedToBattle, limitedToOption, name) {
+		this.name = name;
 		this.title = title;
 		this.description = description;
 		this.limitedToSide = limitedToSide;
@@ -128,10 +129,13 @@
 		return o;
 	}
 	Option.prototype.availableFor = function (battleSide, thisSideUnits, battleType, options) {
-		return 	(this.limitedToSide === undefined || this.limitedToSide === battleSide) && 
-				(this.limitedToUnit === undefined || thisSideUnits[this.limitedToUnit].count>0) &&
-				(this.limitedToBattle === undefined || this.limitedToBattle === battleType) &&
-				(this.limitedToOption === undefined || Object.byString(options,this.limitedToOption));
+		var condition = (this.limitedToSide === undefined || this.limitedToSide === battleSide) && 
+						(this.limitedToUnit === undefined || thisSideUnits[this.limitedToUnit].count>0) &&
+						(this.limitedToBattle === undefined || this.limitedToBattle === battleType) &&
+						(this.limitedToOption === undefined || Object.byString(options,this.limitedToOption));
+		//console.log(this, condition);
+		options[battleSide][this.name]=condition ? options[battleSide][this.name] : false;
+		return condition;
 	};
 	root.ActionCards = {
 		moraleBoost: new Option('Morale Boost 1st round', '+1 dice modifier to all units during the first battle round'),
@@ -253,7 +257,7 @@
 	}
 	root.RacialSpecific = {
 		Letnev: {
-			munitions: new Option('Munitions Reserves Every Round', 'Use the Munitions Reserves Ability at the start of every round of space combat',undefined,undefined,'Space'),
+			munitions: new Option('Munitions Reserves Every Round', 'Use the Munitions Reserves Ability at the start of every round of space combat',undefined,undefined,'Space', undefined, 'munitions'),
 			dunlainMechs: new Option('Deploy Mechs Every Round', "Use the mech's DEPLOY ability to replace an infantry with a mech at the start of every round of ground combat",undefined,"Ground", 'Ground'),
 		},
 		Virus: {
@@ -266,7 +270,7 @@
 			opponentNoToken: new Option("Opponent's Command Token Not in Fleet Pool", "Flagship applys +2 to the result of its combat rolls against an opponent whose command token is not in Mahact's fleet pool", undefined,"Flagship",'Space'),
 		},
 		Hacan:{
-			infiniteTG: new Option('Unlimited Trade Goods', "Unlimited Trade Goods to use for the flagship's ability",undefined,"Flagship",'Space'),
+			infiniteTG: new Option('Unlimited Trade Goods', "Unlimited Trade Goods to use for the flagship's ability",undefined,"Flagship",'Space', undefined, 'infiniteTG'),
 		},
 		Sardakk:{
 			sustainMechs: new Option("Sustain Only During Combat", "Only use Sustain Damage on your mechs when in combat", undefined,'Mech','Ground'),
@@ -376,7 +380,7 @@
 		}),
 		Dreadnought: new root.UnitInfo(UnitType.Dreadnought, {
 			sustainDamageHits: 1,
-			battleValue: 5,
+			battleValue: 12,
 			bombardmentValue: 5,
 			bombardmentDice: 1,
 			cost: 4,
@@ -396,7 +400,7 @@
 			cost: 1,
 		}),
 		Fighter: new root.UnitInfo(UnitType.Fighter, {
-			battleValue: 9,
+			battleValue: 12,
 			cost: 0.5,
 		}),
 		PDS: new root.UnitInfo(UnitType.PDS, {
@@ -614,8 +618,8 @@
 		Hacan: {
 			Flagship: new root.UnitInfo(UnitType.Flagship, {
 				sustainDamageHits: 1,
-				battleValue: 7,
-				battleDice: 2,
+				battleValue: 10,
+				battleDice: 1,
 				race: root.Race.Hacan,
 				cost: 8,
 			}),
@@ -847,6 +851,7 @@
 
 	root.MergedUnits = {};
 	root.MergedUpgrades = {};
+	root.storedValues = { attacker: {tgsEarned:0, yinAgentUses:0, reflectiveShieldingUses:0, directHitUses:0, tgsSpent:0, battleDiceRolled:0}, defender: {tgsEarned:0, yinAgentUses:0, reflectiveShieldingUses:0, directHitUses:0, tgsSpent:0, battleDiceRolled:0} };
 	for (var race in root.Race) {
 		root.MergedUnits[race] = Object.assign({}, root.StandardUnits, root.RaceSpecificUnits[race]);
 		root.MergedUpgrades[race] = Object.assign({}, root.StandardUpgrades, root.RaceSpecificUpgrades[race]);
@@ -938,6 +943,8 @@
 		}
 		thisSideOptions.yinAgentUses= thisSideOptions.yinAgent ? 1 : 0 ;
 		thisSideOptions.reflectiveShieldingUses= thisSideOptions.reflectiveShielding ? 1 : 0 ;
+		thisSideOptions.directHitUses = battleSide === "attacker" ? thisSideOptions.directHit + thisSideOptions.directHit2A + thisSideOptions.directHit3A + thisSideOptions.directHit4A :
+										thisSideOptions.directHit + thisSideOptions.directHit2D + thisSideOptions.directHit3D + thisSideOptions.directHit4D;
 		thisSideOptions.hacanFlagship = battleType === root.BattleType.Space && thisSideOptions.race === root.Race.Hacan &&
 		(input[root.SideUnits[battleSide]][UnitType.Flagship] || { count: 0 }).count !== 0;
 		thisSideOptions.virusFlagship = virusFlagship;

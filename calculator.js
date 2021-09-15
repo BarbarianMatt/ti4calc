@@ -8,7 +8,7 @@
 		game = window;
 	}
 
-	//root.storedValues = {attacker: {tgsEarned:0, tgsSpent:0}, defender: {tgsEarned:0, tgsSpent:0}};
+	
 	root.calculator = (function () {
 		var boosts = initBoosts();
 		var rollBoosts = initExtraRolls();
@@ -26,7 +26,8 @@
 			var defenderFull = game.expandFleet(input, game.BattleSide.defender);
 			var attacker = attackerFull.filterForBattle();
 			var defender = defenderFull.filterForBattle();
-			//console.log(options);
+			console.log(root.storedValues.attacker);
+
 			//use upper left as an origin
 			//initially all the probability mass is concentrated at both fleets being unharmed
 
@@ -118,12 +119,12 @@
 				}
 				tgsEarnedDefender+= probability*sustainDamages;
 			}
-			tgsEarnedAttacker=tgsEarnedAttacker===0 || !options.attacker.letnevCommander ? null : Math.round(tgsEarnedAttacker*100)/100;
-			tgsEarnedDefender=tgsEarnedDefender===0 || !options.defender.letnevCommander ? null : Math.round(tgsEarnedDefender*100)/100;
-			/*
-			tgsHacanAttacker=stats.attacker.tgHacan==0 || !options.attacker.hacanFlagship ? null : Math.round(stats.attacker.tgHacan*1000)/1000;
-			tgsHacanDefender=stats.defender.tgHacan==0 || !options.defender.hacanFlagship ? null : Math.round(stats.defender.tgHacan*1000)/1000;*/
+			tgsEarnedAttacker=tgsEarnedAttacker===0 || !options.attacker.letnevCommander ? null : Math.round(tgsEarnedAttacker*100)/100 + " EA";
+			tgsEarnedDefender=tgsEarnedDefender===0 || !options.defender.letnevCommander ? null : Math.round(tgsEarnedDefender*100)/100 + " ED";
 
+			var tgsSpentAttacker=root.storedValues.attacker.tgsSpent === 0 ? null : Math.round(root.storedValues.attacker.tgsSpent*100)/100 + " SA";
+			var tgsSpentDefender=root.storedValues.defender.tgsSpent === 0 ? null : Math.round(root.storedValues.defender.tgsSpent*100)/100 + " SD";
+			console.log(root.storedValues.attacker.tgsSpent);
 			return [{
 				distribution: finalDistribution,
 				attacker: finalAttacker.map(function (set) {
@@ -136,7 +137,7 @@
 						return prev + item;
 					});
 				}),
-			}, tgsEarnedAttacker, tgsEarnedDefender];
+			}, tgsEarnedAttacker, tgsEarnedDefender,tgsSpentAttacker, tgsSpentDefender];
 		}
 
 		/** Do full probability mass redistribution according to transition vectors */
@@ -170,7 +171,19 @@
 				winnuFlagship: battleType === game.BattleType.Space,
 
 			};
-			
+			console.log(root.storedValues.attacker.battleDiceRolled);
+			for (var i = 0; i<problem.distribution.rows;i++){
+				var sum=0;
+				for (var j = 0;j<problem.distribution.columns;j++)
+					sum+=problem.distribution[i][j];
+				root.storedValues.attacker.battleDiceRolled+=dieRolled(problem.attacker,game.ThrowType.Battle, attackerRollBoost ,i)*sum;
+			}
+			for (var j = 0; i<problem.distribution.columns;i++){
+				var sum=0;
+				for (var i = 0;j<problem.distribution.rows;j++)
+					sum+=problem.distribution[i][j];
+				root.storedValues.defender.battleDiceRolled+=dieRolled(problem.defender,game.ThrowType.Battle, defenderRollBoost ,j)*sum;
+			}
 			if (attackerBoost !== undefined || defenderBoost !== undefined || // boosts apply to the first round only
 				attackerRollBoost !== undefined || defenderRollBoost !== undefined ||
 				magenDefenseActivated || // Magen Defence applies to the first round
@@ -279,7 +292,12 @@
 				}
 			}
 			//console.log(JSON.parse(JSON.stringify(problem)));
+			console.log(root.storedValues.attacker.battleDiceRolled);
 			propagateProbabilityUpLeft(problem, battleType, attackerFull, defenderFull, options,input);
+			console.log(root.storedValues.attacker.battleDiceRolled);
+			root.storedValues.attacker.tgsSpent += options.attacker.infiniteTG ? root.storedValues.attacker.battleDiceRolled * 0.1 : 0;
+			root.storedValues.defender.tgsSpent += options.defender.infiniteTG ? root.storedValues.defender.battleDiceRolled * 0.1 : 0;
+			console.log(root.storedValues.attacker.tgsSpent);
 		}
 
 		function propagateProbabilityUpLeft(problem, battleType, attackerFull, defenderFull, options, input) {
@@ -307,8 +325,7 @@
 			var defenderFlagshipIndex = options.defender.race === game.Race.Yin ?
 				findLastIndex(problem.defender, unitIs(game.UnitType.Flagship)) + 1
 				: 0;
-			//console.log(distr.rows);
-			//console.log(distr.columns);
+			//console.log(JSON.parse(JSON.stringify(distr)));	
 			for (var a = distr.rows - 1; 0 < a; a--) {
 				for (var d = distr.columns - 1; 0 < d; d--) {
 					
@@ -320,23 +337,21 @@
 							defenderTransitions = computeFleetTransitions(problem.defender, game.ThrowType.Battle, boost(battleType, options.defender, options.attacker, problem.defender, false), rollBoost(battleType, options.defender, options.attacker, problem.defender, false,attackerFull),defenderReroll, options.defender);
 						}
 					}
-					var attackerTransitionsVector = adjustForNonEuclidean(attackerTransitions[a], problem.defender, d - 1, options.defender);
+					var attackerTransitionsVector = adjustForNonEuclidean(attackerTransitions[a], problem.defender, d - 1, options.defender);				
 					var defenderTransitionsVector = adjustForNonEuclidean(defenderTransitions[d], problem.attacker, a - 1, options.attacker);
-					//var transitionMatrix = (options.attacker.antimassDeflectors ? unconstrainedOrthogonalMultiply : orthogonalMultiply)(attackerTransitionsVector, defenderTransitionsVector, d + 1, a + 1);
 					var transitionMatrix = orthogonalMultiply(attackerTransitionsVector, defenderTransitionsVector, d + 1, a + 1);
-					var arrText='';
+					//console.log(JSON.parse(JSON.stringify(transitionMatrix)));
+					/*var arrText='';
 					var num;
-
-					/*for (var y=0; y < transitionMatrix.columns; y++){
-						for (var x=0; x < transitionMatrix.rows; x++){
+					for (var y=transitionMatrix.rows-1; y >= 0; y--){
+						for (var x=transitionMatrix.columns-1; x >= 0; x--){
 							num = parseFloat(transitionMatrix.at(x,y).toFixed(15));
 							arrText+=num.toString()+' ';
-							//console.log(transitionMatrix.at(x,y));
 						}
 						console.log(arrText);
 						arrText='';
 					}*/
-
+					//console.log(transitionMatrix.at(0,0));
 					if (battleType === game.BattleType.Ground)
 						transitionMatrix = adjustForValkyrieParticleWeave(transitionMatrix, options, d + 1, a + 1);
 					if (harrowTransitions)
@@ -348,8 +363,12 @@
 					else {
 						k = distr[a][d] / (1 - transitionMatrix.at(0, 0));
 					}
-					
+					//console.log(k);
+					//console.log(a,d);
+					//console.log(JSON.parse(JSON.stringify(distr[a][d])));
 					// transitions for everything except for attackerInflicted===0&&defenderInflicted===0
+					root.storedValues.attacker.battleDiceRolled += dieRolled(problem.attacker,game.ThrowType.Battle,rollBoost(battleType, options.defender, options.attacker, problem.defender, false,attackerFull),a)*k;
+					root.storedValues.defender.battleDiceRolled += dieRolled(problem.defender,game.ThrowType.Battle,rollBoost(battleType, options.attacker, options.defender, problem.attacker, false,defenderFull),d)*k;
 					for (var attackerInflicted = 0; attackerInflicted < transitionMatrix.rows; attackerInflicted++) {
 						for (var defenderInflicted = 0; defenderInflicted < transitionMatrix.columns && defenderInflicted <= a; defenderInflicted++) {
 							if (attackerInflicted === 0 && defenderInflicted === 0) continue;
@@ -363,6 +382,7 @@
 						}
 					}
 					distr[a][d] = 0;
+					//console.log(JSON.parse(JSON.stringify(distr)));
 				}
 			}
 		}
@@ -371,6 +391,18 @@
 		 * result[4] === [X,Y,Z,..] means that probabilities of the first 4 units in the fleet
 		 * inflicting 0, 1, 2 etc damage points are X, Y, Z, etc respectively
 		 * @param throwType game.ThrowType */
+		function dieRolled(fleet,throwType,modifierRoll,fleetCount){
+			modifierRoll = modifierRoll || 0;
+			var modifierRollFunction = typeof modifierRoll === 'function' ? modifierRoll: function (unit) {
+				return modifierRoll;
+			};
+			var diceRolls=0
+			for (var a = 1; a <= fleetCount; ++a) {
+				var unit = fleet[a - 1];
+				diceRolls+= unit[game.ThrowDice[throwType]] + modifierRollFunction(unit);
+			}
+			return diceRolls;
+		}
 		function computeFleetTransitions(fleet, throwType, modifier, modifierRoll, reroll, thisSideOptions) {
 			modifier = modifier || 0;
 			modifierRoll = modifierRoll || 0;
@@ -460,6 +492,7 @@
 				}
 				result=temp1;
 			}
+			//console.log(result);
 			return result;
 		}
 		function moreDieForStrongestUnit(fleet, throwType, dice){
@@ -1679,8 +1712,7 @@
 			var battleDice = null;
 			fleet.filter(unitIs(game.UnitType.Flagship)).forEach(function (flagship) {
 				flagship.battleDice = battleDice === null ?
-					// according to https://boardgamegeek.com/thread/1916774/nekrowinnu-flagship-interaction
-					(battleDice = opposingFleet.slice(0, opposingFleetCount).filter(notFighterNorGroundForceShip).length) :
+					(battleDice = opposingFleet.slice(0, opposingFleetCount).filter(notFighterShip).length) :
 					battleDice;
 			});
 			
