@@ -9,7 +9,7 @@
 		game = window;
 	}
 
-	root.imitationIterations = 100000;
+	root.imitationIterations = 10000;
 	root.imitator = (function () {
 
 		var prebattleActions = initPrebattleActions();

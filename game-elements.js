@@ -133,7 +133,6 @@
 						(this.limitedToUnit === undefined || thisSideUnits[this.limitedToUnit].count>0) &&
 						(this.limitedToBattle === undefined || this.limitedToBattle === battleType) &&
 						(this.limitedToOption === undefined || Object.byString(options,this.limitedToOption));
-		//console.log(this, condition);
 		options[battleSide][this.name]=condition ? options[battleSide][this.name] : false;
 		return condition;
 	};
@@ -185,15 +184,15 @@
 	root.Promissory = {
 		letnevMunitionsFunding: new Option('War Funding 1st round', 'Reroll dice during first space combat round'),
 		tekklarLegion: new Option('Tekklar Legion', '+1 in invasion combat. -1 to Sardakk if he\'s the opponent'),
-		argentStrikeWing: new Option('Strike Wing Ambuscade', 'One additional die for one unit during Space Cannon, Bombardment, or Anti-Fighter Barrage'),
-		argentStrikeWingBombardmentA: new Option('Strike Wing Bombardment', 'Use Strike Wind Ambuscade on your Bombardment roll','attacker'),
-		argentStrikeWingSpaceCannonA: new Option('Strike Wing Space Cannon', 'Use Strike Wind Ambuscade on your Space Cannon roll','attacker'),
-		argentStrikeWingBarrageA: new Option('Strike Wing Anti-Fighter Barrage', 'Use Strike Wind Ambuscade on your Anti-Fighter Barrage roll','attacker'),
-		argentStrikeWingSpaceCannonD: new Option('Strike Wing Space Cannon', 'Use Strike Wind Ambuscade on your Space Cannon roll','defender'),
-		argentStrikeWingBarrageD: new Option('Strike Wing Anti-Fighter Barrage', 'Use Strike Wind Ambuscade on your Anti-Fighter Barrage roll','defender'),
+		argentStrikeWing: new Option('Strike Wing Ambuscade', 'One additional die for one unit during Space Cannon, Bombardment, or Anti-Fighter Barrage'),	
+		argentStrikeWingSpaceCannonA: new Option('Strike Wing Space Cannon', 'Use Strike Wind Ambuscade on your Space Cannon roll','attacker',undefined, undefined, 'attacker.argentStrikeWing'),
+		argentStrikeWingSpaceCannonD: new Option('Strike Wing Space Cannon', 'Use Strike Wind Ambuscade on your Space Cannon roll','defender',undefined, undefined, 'defender.argentStrikeWing'),
+		argentStrikeWingBarrageA: new Option('Strike Wing Anti-Fighter Barrage', 'Use Strike Wind Ambuscade on your Anti-Fighter Barrage roll','attacker',undefined, undefined, 'attacker.argentStrikeWing'),	
+		argentStrikeWingBarrageD: new Option('Strike Wing Anti-Fighter Barrage', 'Use Strike Wind Ambuscade on your Anti-Fighter Barrage roll','defender',undefined, undefined, 'defender.argentStrikeWing'),
+		argentStrikeWingBombardmentA: new Option('Strike Wing Bombardment', 'Use Strike Wind Ambuscade on your Bombardment roll','attacker',undefined, undefined, 'attacker.argentStrikeWing'),
 		nomadCavalry: new Option('The Cavalry', 'Weakest non-fighter ship gains the Sustain Damage ability, Combat value, and Anti-Fighter Barrage value of the Nomad Flagship. Cannot be used against the Nomad' ),
-		hasMemoriaIIA: new Option('Has Memoria II', 'The Nomad has Memoria II', 'attacker'),
-		hasMemoriaIID: new Option('Has Memoria II', 'The Nomad has Memoria II','defender'),
+		hasMemoriaIIA: new Option('Has Memoria II', 'The Nomad has Memoria II', 'attacker', undefined, undefined, 'attacker.nomadCavalry'),
+		hasMemoriaIID: new Option('Has Memoria II', 'The Nomad has Memoria II','defender', undefined, undefined, 'defender.nomadCavalry'),
 	};
 
 	root.Miscellaneous = {
@@ -424,8 +423,8 @@
 			battleDice: 0,
 		}),
 		TheProgenitor: new root.UnitInfo('The Progenitor', {
-			spaceCannonValue: 5,
-			spaceCannonDice: 3,
+			spaceCannonValue: 3,
+			spaceCannonDice: 1,
 		}),
 	};
 
@@ -1151,6 +1150,7 @@
 	};
 
 	root.damageable = function (race, unitType, upgraded, options) {
+		//console.trace();
 		return (upgraded ? root.MergedUpgrades : root.MergedUnits)[race][unitType].sustainDamageHits > 0  || (unitType === root.UnitType.Cruiser && options.saturnEngineII) || (unitType === root.UnitType.PDS && options.helTitanII);
 	};
 

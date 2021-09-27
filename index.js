@@ -17,7 +17,7 @@
 
 	var transientProperties = {
 		costs: { attacker: { count: 0, cost: 0, }, defender: { count: 0, cost: 0, } },
-		tgs: { attacker: { tgsEarned:null, tgsSpent:null }, defender: { tgsEarned:null, tgsSpent:null } },
+		storedValues: { attacker: { tgsEarned:null, tgsSpent:null }, defender: { tgsEarned:null, tgsSpent:null } },
 		showOptions: false,
 		showHelp: false,
 		computing: false,
@@ -55,8 +55,7 @@
 				// veeery poor man's background processing
 				setTimeout(function () {
 					// unfortunately some game aspects are hard to handle in the calculator
-					
-				
+
 					var duraniumArmor = self.options.attacker.duraniumArmor || self.options.defender.duraniumArmor;
 					var l1z1xFlagship = (self.options.attacker.race === Race.L1Z1X && self.attackerUnits.Flagship.count !== 0 ||
 						self.options.defender.race === Race.L1Z1X && self.defenderUnits.Flagship.count !== 0) && self.battleType === BattleType.Space;
@@ -80,9 +79,9 @@
 					//var solCommander = self.options.defender.solCommander && self.battleType === BattleType.Ground;
 					var daxcive = self.options.attacker.daxcive;
 					if ((duraniumArmor || l1z1xFlagship || letnevFlagship || sardakkMech || reflective || l1z1xX89Omega || mentakH || yinA  || directHit || valkyrieAndNonEuclidean || dunlainMechs || /*solCommander ||*/ daxcive) || self.forceSlow){
-						[lastComputed, self.tgs.attacker.tgsEarned, self.tgs.defender.tgsEarned, self.tgs.attacker.tgsSpent, self.tgs.defender.tgsSpent] = imitator.estimateProbabilities(self);
+						[lastComputed, self.storedValues.attacker.tgsEarned, self.storedValues.defender.tgsEarned, self.storedValues.attacker.tgsSpent, self.storedValues.defender.tgsSpent] = imitator.estimateProbabilities(self);
 					} else {
-						[lastComputed, self.tgs.attacker.tgsEarned, self.tgs.defender.tgsEarned, self.tgs.attacker.tgsSpent, self.tgs.defender.tgsSpent] = calculator.computeProbabilities(self);
+						[lastComputed, self.storedValues.attacker.tgsEarned, self.storedValues.defender.tgsEarned, self.storedValues.attacker.tgsSpent, self.storedValues.defender.tgsSpent] = calculator.computeProbabilities(self);
 					}
 					self.displayDistribution(lastComputed);
 
@@ -192,7 +191,6 @@
 					costs.cost = 0;
 					for (var unitType in UnitType) {
 						if (unitType === UnitType.PDS) continue;
-
 						var counter = units[unitType];
 						costs.count += counter.count;
 						costs.cost += (counter.upgraded && MergedUpgrades[sideOptions.race][unitType].cost || MergedUnits[sideOptions.race][unitType].cost) * counter.count;
@@ -712,6 +710,65 @@
 							}
 					};
 				}
+			},/*
+			promissory: function() {
+				var result = [];
+				var techKeys = Object.keys(Promissory);
+				for (var i = 0; i < techKeys.length; ++i){
+					var tech = Promissory[techKeys[i]];
+					if (tech.limitedToSide === "attacker" && (i + 1 < techKeys.length) && Promissory[techKeys[i+1]].limitedToSide === "defender"){
+						// special collapsing of Ω techs into one row
+						result.push({
+							pair: {
+							[BattleSide.attacker]: {
+								key: techKeys[i],
+								option: Promissory[techKeys[i]],
+							},
+							[BattleSide.defender]: {
+								key: techKeys[i + 1],
+								option: Promissory[techKeys[i + 1]],
+							}
+						}});
+						i++;
+					} else {
+						result.push({
+							key: techKeys[i],
+							option: tech
+						});
+					}
+				}
+				return result;
+			},*/
+			promissory: function() {
+				var result = [];
+				var techKeys = Object.keys(Promissory);
+				for (var i = 0; i < techKeys.length; ++i){
+					var tech = Promissory[techKeys[i]];
+					if ((tech.availableFor("attacker", this.options.attacker.units, this.options.attacker.battleType,this.options) && tech.limitedToSide === 'attacker') && 
+						(i + 1 < techKeys.length) && 
+						(Promissory[techKeys[i+1]].availableFor("defender", this.options.defender.units, this.options.defender.battleType, this.options) && Promissory[techKeys[i+1]].limitedToSide === 'defender')){
+						// special collapsing of Ω techs into one row
+						result.push({
+							pair: {
+							[BattleSide.attacker]: {
+								key: techKeys[i],
+								option: Promissory[techKeys[i]],
+							},
+							[BattleSide.defender]: {
+								key: techKeys[i + 1],
+								option: Promissory[techKeys[i + 1]],
+							}
+						}});
+						i++;
+					} else {
+						result.push({
+							key: techKeys[i],
+							option: tech
+						});
+					}
+				}
+
+				return result;
 			},
 			canvasWidth: function () {
 				return window.CanvasSizes[this.canvasSize].width + 'px';
@@ -870,8 +927,8 @@
 		for (var agenda in Agendas) {
 			result.options.attacker[agenda] = false;
 		}
-		for (var promissory in Promissory) {
-			result.options.attacker[promissory] = false;
+		for (var prom in Promissory) {
+			result.options.attacker[prom] = false;
 		}
 		for (var mis in Miscellaneous) {
 			result.options.attacker[mis] = false;

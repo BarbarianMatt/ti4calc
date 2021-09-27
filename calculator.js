@@ -26,7 +26,7 @@
 			var defenderFull = game.expandFleet(input, game.BattleSide.defender);
 			var attacker = attackerFull.filterForBattle();
 			var defender = defenderFull.filterForBattle();
-			console.log(root.storedValues.attacker);
+			//console.log(root.storedValues.attacker);
 
 			//use upper left as an origin
 			//initially all the probability mass is concentrated at both fleets being unharmed
@@ -124,7 +124,6 @@
 
 			var tgsSpentAttacker=root.storedValues.attacker.tgsSpent === 0 ? null : Math.round(root.storedValues.attacker.tgsSpent*100)/100 + " SA";
 			var tgsSpentDefender=root.storedValues.defender.tgsSpent === 0 ? null : Math.round(root.storedValues.defender.tgsSpent*100)/100 + " SD";
-			console.log(root.storedValues.attacker.tgsSpent);
 			return [{
 				distribution: finalDistribution,
 				attacker: finalAttacker.map(function (set) {
@@ -171,18 +170,19 @@
 				winnuFlagship: battleType === game.BattleType.Space,
 
 			};
-			console.log(root.storedValues.attacker.battleDiceRolled);
 			for (var i = 0; i<problem.distribution.rows;i++){
 				var sum=0;
-				for (var j = 0;j<problem.distribution.columns;j++)
+				for (var j = 0;j<problem.distribution.columns;j++){
 					sum+=problem.distribution[i][j];
-				root.storedValues.attacker.battleDiceRolled+=dieRolled(problem.attacker,game.ThrowType.Battle, attackerRollBoost ,i)*sum;
+				}
+				root.storedValues.attacker.battleDiceRolled+=dieRolled(problem.attacker, game.ThrowType.Battle, attackerRollBoost, i)*sum;
 			}
-			for (var j = 0; i<problem.distribution.columns;i++){
+			for (var j = 0; j<problem.distribution.columns;j++){
 				var sum=0;
-				for (var i = 0;j<problem.distribution.rows;j++)
+				for (var i = 0;i<problem.distribution.rows;i++){
 					sum+=problem.distribution[i][j];
-				root.storedValues.defender.battleDiceRolled+=dieRolled(problem.defender,game.ThrowType.Battle, defenderRollBoost ,j)*sum;
+				}
+				root.storedValues.defender.battleDiceRolled+=dieRolled(problem.defender, game.ThrowType.Battle, defenderRollBoost, j)*sum;
 			}
 			if (attackerBoost !== undefined || defenderBoost !== undefined || // boosts apply to the first round only
 				attackerRollBoost !== undefined || defenderRollBoost !== undefined ||
@@ -292,12 +292,9 @@
 				}
 			}
 			//console.log(JSON.parse(JSON.stringify(problem)));
-			console.log(root.storedValues.attacker.battleDiceRolled);
 			propagateProbabilityUpLeft(problem, battleType, attackerFull, defenderFull, options,input);
-			console.log(root.storedValues.attacker.battleDiceRolled);
 			root.storedValues.attacker.tgsSpent += options.attacker.infiniteTG ? root.storedValues.attacker.battleDiceRolled * 0.1 : 0;
 			root.storedValues.defender.tgsSpent += options.defender.infiniteTG ? root.storedValues.defender.battleDiceRolled * 0.1 : 0;
-			console.log(root.storedValues.attacker.tgsSpent);
 		}
 
 		function propagateProbabilityUpLeft(problem, battleType, attackerFull, defenderFull, options, input) {
@@ -363,10 +360,7 @@
 					else {
 						k = distr[a][d] / (1 - transitionMatrix.at(0, 0));
 					}
-					//console.log(k);
-					//console.log(a,d);
-					//console.log(JSON.parse(JSON.stringify(distr[a][d])));
-					// transitions for everything except for attackerInflicted===0&&defenderInflicted===0
+
 					root.storedValues.attacker.battleDiceRolled += dieRolled(problem.attacker,game.ThrowType.Battle,rollBoost(battleType, options.defender, options.attacker, problem.defender, false,attackerFull),a)*k;
 					root.storedValues.defender.battleDiceRolled += dieRolled(problem.defender,game.ThrowType.Battle,rollBoost(battleType, options.attacker, options.defender, problem.attacker, false,defenderFull),d)*k;
 					for (var attackerInflicted = 0; attackerInflicted < transitionMatrix.rows; attackerInflicted++) {
@@ -382,7 +376,6 @@
 						}
 					}
 					distr[a][d] = 0;
-					//console.log(JSON.parse(JSON.stringify(distr)));
 				}
 			}
 		}
@@ -392,6 +385,7 @@
 		 * inflicting 0, 1, 2 etc damage points are X, Y, Z, etc respectively
 		 * @param throwType game.ThrowType */
 		function dieRolled(fleet,throwType,modifierRoll,fleetCount){
+			//console.log(fleet,throwType,modifierRoll,fleetCount);
 			modifierRoll = modifierRoll || 0;
 			var modifierRollFunction = typeof modifierRoll === 'function' ? modifierRoll: function (unit) {
 				return modifierRoll;

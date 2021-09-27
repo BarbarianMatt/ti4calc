@@ -141,7 +141,7 @@
 					@click="clear('attacker')">Clear Attacker
 			</button>
 		</div>
-		<div class="unit-name"><span>{{tgs.attacker.tgsEarned}} {{tgs.attacker.tgsSpent}} {{tgs.defender.tgsSpent}} {{tgs.defender.tgsEarned}}</span></div>
+		<div class="unit-name"><span>{{storedValues.attacker.tgsEarned}} {{storedValues.attacker.tgsSpent}} {{storedValues.defender.tgsSpent}} {{storedValues.defender.tgsEarned}}</span></div>
 		<div class="o-grid__cell block">
 			<button type="button" class="c-button c-button--ghost-brand u-small"
 					@click="clear('defender')">Clear Defender
@@ -196,11 +196,11 @@
 		<div class="heading"><strong>Agendas / Promissory / Racial / Miscellaneous</strong></div>
 		<option-pair v-for="(option, key) in Agendas"
 					 :option-name="key" :option="option" :options="options"></option-pair>
-		<option-pair v-for="(option, key) in Promissory"
-					 :option-name="key" :option="option" :options="options" :visible="(key !== 'hasMemoriaIIA' && key !== 'hasMemoriaIID' && key !== 'argentStrikeWingBombardmentA' && key !== 'argentStrikeWingSpaceCannonA' && key !== 'argentStrikeWingBarrageA' && key !== 'argentStrikeWingBarrageD' && key !== 'argentStrikeWingSpaceCannonD') 
-					 || (key === 'hasMemoriaIIA' && options.attacker.nomadCavalry) || (key === 'hasMemoriaIID' && options.defender.nomadCavalry)
-					 || ((key === 'argentStrikeWingBombardmentA' || key === 'argentStrikeWingSpaceCannonA' || key === 'argentStrikeWingBarrageA')   && options.attacker.argentStrikeWing)
-					 || (( key === 'argentStrikeWingSpaceCannonD' || key === 'argentStrikeWingBarrageD')   && options.defender.argentStrikeWing)"></option-pair>
+		<option-pair v-for="prom in promissory"
+					 :option-name="prom.key" :option="prom.option" :pair="prom.pair" :options="options" :visible="(prom.key !== 'hasMemoriaIIA' && prom.key !== 'hasMemoriaIID' && prom.key !== 'argentStrikeWingBombardmentA' && prom.key !== 'argentStrikeWingSpaceCannonA' && prom.key !== 'argentStrikeWingBarrageA' && prom.key !== 'argentStrikeWingBarrageD' && prom.key !== 'argentStrikeWingSpaceCannonD') 
+					 || (prom.key === 'hasMemoriaIIA' && options.attacker.nomadCavalry) || (prom.key === 'hasMemoriaIID' && options.defender.nomadCavalry)
+					 || ((prom.key === 'argentStrikeWingBombardmentA' || prom.key === 'argentStrikeWingSpaceCannonA' || prom.key === 'argentStrikeWingBarrageA')   && options.attacker.argentStrikeWing)
+					 || (( prom.key === 'argentStrikeWingSpaceCannonD' || prom.key === 'argentStrikeWingBarrageD')   && options.defender.argentStrikeWing)"></option-pair>
 		<option-pair v-for="mis in miscellaneous"
 					:option-name="mis.key" :option="mis.option" :pair="mis.pair" :options="options" :visible="true"></option-pair>
 		<option-pair v-for="pair in raceOptions" :pair="pair" :options="options"></option-pair>
