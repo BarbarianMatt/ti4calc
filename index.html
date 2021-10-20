@@ -180,7 +180,9 @@
 		<div class="heading"><strong>Technologies</strong></div>
 
 		<option-pair v-for="technology in technologies"
-					:option-name="technology.key" :option="technology.option" :pair="technology.pair" :options="options" :visible="(technology.key !== 'hasDock' && technology.key !== 'x89Conservative' && technology.key !== 'hasStructure' && technology.key !== 'plasmaScoringFirstRound') || (technology.key === 'plasmaScoringFirstRound' && options.attacker.race === 'L1Z1X' && options.attacker.plasmaScoring) || (technology.key === 'hasDock' && options.defender.magenDefenseOmega) || (technology.key === 'hasStructure' && options.attacker.magenDefenseOmega) || (technology.key === 'x89Conservative' && options.attacker.x89Omega) || (technology.key === 'x89Conservative' && options.attacker.x89Omega)"></option-pair>
+					:option-name="technology.key" :option="technology.option" :pair="technology.pair" :options="options" :visible="(technology.key !== 'hasDock' && technology.key !== 'x89Conservative' && technology.key !== 'hasStructure' && technology.key !== 'plasmaScoringFirstRound') || 
+					(technology.key === 'plasmaScoringFirstRound' && options.attacker.race === 'L1Z1X' && options.attacker.plasmaScoring) || (technology.key === 'hasDock' && options.defender.magenDefenseOmega) || 
+					(technology.key === 'hasStructure' && options.attacker.magenDefenseOmega) || (technology.key === 'x89Conservative' && options.attacker.x89Omega)"></option-pair>
 					
 					<option-pair v-for="pair in raceTechnologies" :pair="pair" :options="options"></option-pair>
 					

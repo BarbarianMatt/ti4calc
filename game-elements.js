@@ -105,14 +105,14 @@
 		Cabal: "Vuil'Raith Cabal",
 	};
 
-	function Option(title, description, limitedToSide, limitedToUnit, limitedToBattle, limitedToOption, name) {
-		this.name = name;
+	function Option(title, description, limitedToSide, limitedToUnit, limitedToBattle, limitedToOption, pointer) {
 		this.title = title;
 		this.description = description;
 		this.limitedToSide = limitedToSide;
 		this.limitedToUnit = limitedToUnit;
 		this.limitedToBattle = limitedToBattle;
 		this.limitedToOption = limitedToOption;
+		this.pointer = pointer;
 	}
 	Object.byString = function(o, s) {
 		s = s.replace(/\[(\w+)\]/g, '.$1'); // convert indexes to properties
@@ -133,8 +133,16 @@
 						(this.limitedToUnit === undefined || thisSideUnits[this.limitedToUnit].count>0) &&
 						(this.limitedToBattle === undefined || this.limitedToBattle === battleType) &&
 						(this.limitedToOption === undefined || Object.byString(options,this.limitedToOption));
-		options[battleSide][this.name]=condition ? options[battleSide][this.name] : false;
+		if (this.pointer !== undefined)
+			options[battleSide][this.pointer]=condition ? options[battleSide][this.pointer] : false;
 		return condition;
+	};
+	Option.prototype.name = function () {
+		if (this.description === "After another player's ship uses Sustain Damage, destroy that ship") return 'Direct Hit';
+		else if (this.description === "The Nomad has Memoria II") return 'Has Memoria II';
+		else if (this.description === "Use Strike Wind Ambuscade on your Space Cannon roll") return "Strike Wing Space Cannon";
+		else if (this.description === "Use Strike Wind Ambuscade on your Anti-Fighter Barrage roll") return "Strike Wing Anti-Fighter Barrage";
+		else return this.title;
 	};
 	root.ActionCards = {
 		moraleBoost: new Option('Morale Boost 1st round', '+1 dice modifier to all units during the first battle round'),
@@ -144,12 +152,12 @@
 		maneuveringJets: new Option('Maneuvering Jets', 'Cancel 1 Space Cannon hit'),
 		riskDirectHit: new Option('Risk Direct Hit', 'Damage units vulnerable to Direct Hit before killing off fodder'),
 		directHit: new Option('Direct Hit', "After another player's ship uses Sustain Damage, destroy that ship"),
-		directHit2A: new Option('Direct Hit', "After another player's ship uses Sustain Damage, destroy that ship", 'attacker', undefined, undefined, 'attacker.directHit'),
-		directHit2D: new Option('Direct Hit', "After another player's ship uses Sustain Damage, destroy that ship", 'defender', undefined, undefined, 'defender.directHit'),
-		directHit3A: new Option('Direct Hit', "After another player's ship uses Sustain Damage, destroy that ship", 'attacker', undefined, undefined, 'attacker.directHit2A'),
-		directHit3D: new Option('Direct Hit', "After another player's ship uses Sustain Damage, destroy that ship", 'defender', undefined, undefined, 'defender.directHit2D'),
-		directHit4A: new Option('Direct Hit', "After another player's ship uses Sustain Damage, destroy that ship", 'attacker', undefined, undefined, 'attacker.directHit3A'),
-		directHit4D: new Option('Direct Hit', "After another player's ship uses Sustain Damage, destroy that ship", 'defender', undefined, undefined, 'defender.directHit3D'),
+		directHit2A: new Option('Direct Hit2A', "After another player's ship uses Sustain Damage, destroy that ship", 'attacker', undefined, undefined, 'attacker.directHit', 'directHit2A'),
+		directHit2D: new Option('Direct Hit2D', "After another player's ship uses Sustain Damage, destroy that ship", 'defender', undefined, undefined, 'defender.directHit', 'directHit2D'),
+		directHit3A: new Option('Direct Hit3A', "After another player's ship uses Sustain Damage, destroy that ship", 'attacker', undefined, undefined, 'attacker.directHit2A', 'directHit3A'),
+		directHit3D: new Option('Direct Hit3D', "After another player's ship uses Sustain Damage, destroy that ship", 'defender', undefined, undefined, 'defender.directHit2D', 'directHit3D'),
+		directHit4A: new Option('Direct Hit4A', "After another player's ship uses Sustain Damage, destroy that ship", 'attacker', undefined, undefined, 'attacker.directHit3A', 'directHit4A'),
+		directHit4D: new Option('Direct Hit4D', "After another player's ship uses Sustain Damage, destroy that ship", 'defender', undefined, undefined, 'defender.directHit3D', 'directHit4D'),
 		disable: new Option('Disable', "Opponents' PDS lose Planetary Shield and Space Cannon"),
 		reflectiveShielding: new Option('Reflective Shielding', 'Produce 2 hits when one of your ships uses Sustain Damage'),
 		solarFlare: new Option('Solar Flare', 'Other players cannot use SPACE CANNON against your ships'),
@@ -167,12 +175,12 @@
 		magenDefense: new Option('Magen Defense Grid', 'Opponent doesn\'t throw dice for one round if you have Planetary Shield'),
 		magenDefenseOmega: new Option('Magen Defense Grid Ω', '1 hit at the start of ground combat when having structures'),
 		//hasStructure: new Option('Has Structure', 'Attacker has a structure on the planet somehow for Magen Defence Grid Ω', 'attacker'), // not a technology itself, but it's nice to show it close to Magen Defence Grid Ω
-		hasDock: new Option('Has Dock', 'Defender has a dock for Magen Defence Grid Ω', 'defender'), // not a technology itself, but it's nice to show it close to Magen Defence Grid Ω
+		hasDock: new Option('Has Dock', 'Defender has a dock for Magen Defence Grid Ω', 'defender', undefined, undefined, 'defender.magenDefenseOmega', 'hasDock'), // not a technology itself, but it's nice to show it close to Magen Defence Grid Ω
 		duraniumArmor: new Option('Duranium Armor', 'After each round repair 1 unit that wasn\'t damaged this round'),
 		assaultCannon: new Option('Assault Cannon', 'Opponent destroys 1 non-Fighter ship if you have at least 3 non-Fighters'),
 		//daxcive: new Option('Daxcive Animators', 'Ground Forces that die get to roll one more time'),
 		x89Omega: new Option('X-89 Bacterial Weapon Ω', 'Destroy all Infantry by bombardment if at least one is destroyed', 'attacker'),
-		x89Conservative: new Option('Assign X-89 Hits Conservatively', 'Sacrifice other Ground Forces if it prevents X-89 Bacterial Weapon Ω from activating', 'defender'),
+		x89Conservative: new Option('Assign X-89 Hits Conservatively', 'Sacrifice other Ground Forces if it prevents X-89 Bacterial Weapon Ω from activating', 'defender', undefined, 'Ground', 'attacker.x89Omega', 'x89Conservative'),
 	};
 	root.Agendas = {
 		articlesOfWar: new Option('Articles of War', 'All Mechs lose their printed abilities except Sustain Damage'),
@@ -182,17 +190,17 @@
 	};
 	
 	root.Promissory = {
-		letnevMunitionsFunding: new Option('War Funding 1st round', 'Reroll dice during first space combat round'),
+		letnevMunitionsFunding: new Option('Munitions Reserves/War Funding 1st round', 'Reroll dice during first space combat round'),
 		tekklarLegion: new Option('Tekklar Legion', '+1 in invasion combat. -1 to Sardakk if he\'s the opponent'),
 		argentStrikeWing: new Option('Strike Wing Ambuscade', 'One additional die for one unit during Space Cannon, Bombardment, or Anti-Fighter Barrage'),	
-		argentStrikeWingSpaceCannonA: new Option('Strike Wing Space Cannon', 'Use Strike Wind Ambuscade on your Space Cannon roll','attacker',undefined, undefined, 'attacker.argentStrikeWing'),
-		argentStrikeWingSpaceCannonD: new Option('Strike Wing Space Cannon', 'Use Strike Wind Ambuscade on your Space Cannon roll','defender',undefined, undefined, 'defender.argentStrikeWing'),
-		argentStrikeWingBarrageA: new Option('Strike Wing Anti-Fighter Barrage', 'Use Strike Wind Ambuscade on your Anti-Fighter Barrage roll','attacker',undefined, undefined, 'attacker.argentStrikeWing'),	
-		argentStrikeWingBarrageD: new Option('Strike Wing Anti-Fighter Barrage', 'Use Strike Wind Ambuscade on your Anti-Fighter Barrage roll','defender',undefined, undefined, 'defender.argentStrikeWing'),
-		argentStrikeWingBombardmentA: new Option('Strike Wing Bombardment', 'Use Strike Wind Ambuscade on your Bombardment roll','attacker',undefined, undefined, 'attacker.argentStrikeWing'),
-		nomadCavalry: new Option('The Cavalry', 'Weakest non-fighter ship gains the Sustain Damage ability, Combat value, and Anti-Fighter Barrage value of the Nomad Flagship. Cannot be used against the Nomad' ),
-		hasMemoriaIIA: new Option('Has Memoria II', 'The Nomad has Memoria II', 'attacker', undefined, undefined, 'attacker.nomadCavalry'),
-		hasMemoriaIID: new Option('Has Memoria II', 'The Nomad has Memoria II','defender', undefined, undefined, 'defender.nomadCavalry'),
+		argentStrikeWingSpaceCannonA: new Option('Strike Wing Space CannonA', 'Use Strike Wind Ambuscade on your Space Cannon roll','attacker',undefined, undefined, 'attacker.argentStrikeWing', 'argentStrikeWingSpaceCannonA'),
+		argentStrikeWingSpaceCannonD: new Option('Strike Wing Space CannonD', 'Use Strike Wind Ambuscade on your Space Cannon roll','defender',undefined, undefined, 'defender.argentStrikeWing', 'argentStrikeWingSpaceCannonD'),
+		argentStrikeWingBarrageA: new Option('Strike Wing Anti-Fighter BarrageA', 'Use Strike Wind Ambuscade on your Anti-Fighter Barrage roll','attacker',undefined, undefined, 'attacker.argentStrikeWing', 'argentStrikeWingBarrageA'),	
+		argentStrikeWingBarrageD: new Option('Strike Wing Anti-Fighter BarrageD', 'Use Strike Wind Ambuscade on your Anti-Fighter Barrage roll','defender',undefined, undefined, 'defender.argentStrikeWing'),
+		argentStrikeWingBombardmentA: new Option('Strike Wing Bombardment', 'Use Strike Wind Ambuscade on your Bombardment roll','attacker',undefined, undefined, 'attacker.argentStrikeWing', 'argentStrikeWingBarrageD'),
+		nomadCavalry: new Option('The Cavalry', 'Weakest non-fighter ship gains the Sustain Damage ability, Combat value, and Anti-Fighter Barrage value of the Nomad Flagship. Cannot be used against the Nomad', 'argentStrikeWingBombardmentA'),
+		hasMemoriaIIA: new Option('Has Memoria II', 'The Nomad has Memoria II', 'attacker', undefined, undefined, 'attacker.nomadCavalry', 'hasMemoriaIIA'),
+		hasMemoriaIID: new Option('Has Memoria II', 'The Nomad has Memoria II','defender', undefined, undefined, 'defender.nomadCavalry', 'hasMemoriaIID'),
 	};
 
 	root.Miscellaneous = {
@@ -379,7 +387,7 @@
 		}),
 		Dreadnought: new root.UnitInfo(UnitType.Dreadnought, {
 			sustainDamageHits: 1,
-			battleValue: 12,
+			battleValue: 5,
 			bombardmentValue: 5,
 			bombardmentDice: 1,
 			cost: 4,
@@ -399,7 +407,7 @@
 			cost: 1,
 		}),
 		Fighter: new root.UnitInfo(UnitType.Fighter, {
-			battleValue: 12,
+			battleValue: 9,
 			cost: 0.5,
 		}),
 		PDS: new root.UnitInfo(UnitType.PDS, {
@@ -617,8 +625,8 @@
 		Hacan: {
 			Flagship: new root.UnitInfo(UnitType.Flagship, {
 				sustainDamageHits: 1,
-				battleValue: 10,
-				battleDice: 1,
+				battleValue: 7,
+				battleDice: 2,
 				race: root.Race.Hacan,
 				cost: 8,
 			}),
@@ -850,7 +858,6 @@
 
 	root.MergedUnits = {};
 	root.MergedUpgrades = {};
-	root.storedValues = { attacker: {tgsEarned:0, yinAgentUses:0, reflectiveShieldingUses:0, directHitUses:0, tgsSpent:0, battleDiceRolled:0}, defender: {tgsEarned:0, yinAgentUses:0, reflectiveShieldingUses:0, directHitUses:0, tgsSpent:0, battleDiceRolled:0} };
 	for (var race in root.Race) {
 		root.MergedUnits[race] = Object.assign({}, root.StandardUnits, root.RaceSpecificUnits[race]);
 		root.MergedUpgrades[race] = Object.assign({}, root.StandardUpgrades, root.RaceSpecificUpgrades[race]);
@@ -875,7 +882,6 @@
 			(input[root.SideUnits[battleSide]][UnitType.Flagship] || { count: 0 }).count !== 0 && !thisSideOptions.memoriaII;
 		var naaluFlagship = battleType === root.BattleType.Ground && thisSideOptions.race === root.Race.Naalu &&
 			(input[root.SideUnits[battleSide]][UnitType.Flagship] || { count: 0 }).count !== 0;
-		
 		var result = [];
 		var thisSideCounters = input[root.SideUnits[battleSide]];
 		var standardUnits = Object.assign({},oldStandardUnits);

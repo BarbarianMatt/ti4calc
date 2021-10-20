@@ -9,7 +9,7 @@
 		game = window;
 	}
 
-	root.imitationIterations = 10000;
+	root.imitationIterations = 30000;
 	root.imitator = (function () {
 
 		var prebattleActions = initPrebattleActions();
@@ -29,7 +29,8 @@
 			var finalDefender = game.expandFleet(input, game.BattleSide.defender).filterForBattle()
 				.map(function (unit) { return [unit.shortType]; });
 			var defaultValues = { attacker: {tgsEarned:0, yinAgentUses:0, reflectiveShieldingUses:0, directHitUses:0, tgsSpent:0}, 
-								defender: {tgsEarned:0, yinAgentUses:0, reflectiveShieldingUses:0, directHitUses:0, tgsSpent:0} };
+								defender: {tgsEarned:0, yinAgentUses:0, reflectiveShieldingUses:0, directHitUses:0, tgsSpent:0},
+								rounds: 0 };
 			root.storedValues = defaultValues;
 			for (var i = 0; i < root.imitationIterations; ++i) {
 				var attacker = game.expandFleet(input, game.BattleSide.attacker);
@@ -41,7 +42,6 @@
 				root.storedValues.defender.yinAgentUses=options.defender.yinAgentUses;
 				root.storedValues.defender.reflectiveShieldingUses=options.defender.reflectiveShieldingUses;
 				root.storedValues.defender.directHitUses=options.defender.directHitUses;
-				//console.log(JSON.parse(JSON.stringify(options.attacker)));
 				var survivors = imitateBattle(attacker, defender, battleType, options,input);
 
 				if (survivors.attacker.length !== 0) {
@@ -64,11 +64,12 @@
 					result.increment(0);
 			}
 			result.normalize();
-			attackerTgsEarned = (storedValues.attacker.tgsEarned===0 || storedValues.attacker.tgsEarned===null) ? null: Math.round((storedValues.attacker.tgsEarned/root.imitationIterations)*100)/100  + " EA";
-			defenderTgsEarned = (storedValues.defender.tgsEarned===0 || storedValues.defender.tgsEarned===null) ? null: Math.round((storedValues.defender.tgsEarned/root.imitationIterations)*100)/100  + " ED";
+			storedValues.attacker.tgsEarned = (storedValues.attacker.tgsEarned===0 || storedValues.attacker.tgsEarned===null) ? null: (storedValues.attacker.tgsEarned/root.imitationIterations).toFixed(2)  + " EA";
+			storedValues.defender.tgsEarned = (storedValues.defender.tgsEarned===0 || storedValues.defender.tgsEarned===null) ? null: (storedValues.defender.tgsEarned/root.imitationIterations).toFixed(2)  + " ED";
 
-			attackerTgsSpent = (storedValues.attacker.tgsSpent===0 || storedValues.attacker.tgsSpent===null) ? null: Math.round((storedValues.attacker.tgsSpent/root.imitationIterations)*1000)/1000 + " SA";
-			defenderTgsSpent = (storedValues.defender.tgsSpent===0 || storedValues.defender.tgsSpent===null) ? null: Math.round((storedValues.defender.tgsSpent/root.imitationIterations)*100)/100 + " SS";
+			storedValues.attacker.tgsSpent = (storedValues.attacker.tgsSpent===0 || storedValues.attacker.tgsSpent===null) ? null: (storedValues.attacker.tgsSpent/root.imitationIterations).toFixed(2) + " SA";
+			storedValues.defender.tgsSpent = (storedValues.defender.tgsSpent===0 || storedValues.defender.tgsSpent===null) ? null: (storedValues.defender.tgsSpent/root.imitationIterations).toFixed(2) + " SD";
+			storedValues.rounds = storedValues.rounds/root.imitationIterations;
 			return [{
 				distribution: result,
 				attacker: finalAttacker.map(function (set) {
@@ -81,7 +82,7 @@
 						return prev + item;
 					});
 				}),
-			},attackerTgsEarned,defenderTgsEarned,attackerTgsSpent,defenderTgsSpent];
+			},storedValues];
 		}
 
 		function imitateBattle(attackerFull, defenderFull, battleType, options,input) {
@@ -109,9 +110,18 @@
 						// if last unit's are destroyed by Mentak racial ability or Assault Cannon or Barrage,
 						// make sure "after combat round" effects still occur
 						doAtLeastOneRound = battleType === game.BattleType.Space &&
-							(attacker.length || defender.length);
+							(attacker.length && defender.length);
 					} else
 						throw new Error('first pre-battle action not Space Cannon -> Ships');
+				}
+				else if (i === 5) {
+					if (action.name === 'Space Cannon -> Ground Forces') {
+						// if last unit's are destroyed by Mentak racial ability or Assault Cannon or Barrage,
+						// make sure "after combat round" effects still occur
+						doAtLeastOneRound = battleType === game.BattleType.Ground &&
+							(attacker.length && defender.length);
+					} else
+						throw new Error('first pre-battle action not Space Cannon -> Ground Forces');
 				}
 			}
 			attacker.sort(attacker.comparer);
@@ -130,7 +140,6 @@
 				!losePlanetaryAttacker;
 			while (hasUnits(attacker) && hasUnits(defender) || (doAtLeastOneRound && round === 0)) {
 				round++;
-				
 				if (options.attacker.race === game.Race.Letnev)
 					repairFlagships(attacker);
 				if (options.defender.race === game.Race.Letnev)
@@ -141,6 +150,8 @@
 				var defenderBoostRoll = boostRoll(battleType, round, options.defender, defender, options.attacker,defenderFull);
 				var attackerReroll = options.attacker.munitions;
 				var defenderReroll = options.defender.munitions;
+				storedValues.attacker.tgsSpent+= options.attacker.race === game.Race.Letnev && options.attacker.munitions ? 2 : 0;
+				storedValues.defender.tgsSpent+= options.defender.race === game.Race.Letnev && options.defender.munitions ? 2 : 0;
 				if (round === 1) {
 					attackerReroll = options.attacker.fireTeam && battleType === game.BattleType.Ground ||
 						options.attacker.letnevMunitionsFunding && battleType === game.BattleType.Space ||
@@ -148,6 +159,8 @@
 					defenderReroll = options.defender.fireTeam && battleType === game.BattleType.Ground ||
 						options.defender.letnevMunitionsFunding && battleType === game.BattleType.Space||
 						options.defender.munitions && battleType === game.BattleType.Space;
+					storedValues.attacker.tgsSpent+= options.attacker.race === game.Race.Letnev && options.attacker.letnevMunitionsFunding && !options.attacker.munitions ? 2 : 0;
+					storedValues.defender.tgsSpent+= options.defender.race === game.Race.Letnev && options.defender.letnevMunitionsFunding && !options.defender.munitions ? 2 : 0;
 				}
 				if (round === 2 && magenDefenseActivatedDefender) {
 					// if Magen Defense was activated - treat the second round as the first for the attacker
@@ -267,7 +280,7 @@
 					break;
 				}
 			}
-			
+			root.storedValues.rounds+=round;
 			return { attacker: attacker, defender: defender };
 	
 			
@@ -462,7 +475,6 @@
 					if (unit.type === game.UnitType.Flagship && unit.race === game.Race.JolNar && 8 < rollResult)
 						totalRoll += 2;
 					if (thisSideOptions.infiniteTG && rollResult+modifierFunction(unit)+1===battleValue && throwType===game.ThrowType.Battle){
-						//console.log(unit);
 						rollResult+=1;
 						storedValues[thisSideOptions.side].tgsSpent++;
 					}

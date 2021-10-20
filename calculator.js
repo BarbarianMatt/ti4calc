@@ -26,7 +26,9 @@
 			var defenderFull = game.expandFleet(input, game.BattleSide.defender);
 			var attacker = attackerFull.filterForBattle();
 			var defender = defenderFull.filterForBattle();
-			//console.log(root.storedValues.attacker);
+			var storedValues = { attacker: {tgsEarned:0, yinAgentUses:0, reflectiveShieldingUses:0, directHitUses:0, tgsSpent:0, battleDiceRolled:0}, 
+								defender:  {tgsEarned:0, yinAgentUses:0, reflectiveShieldingUses:0, directHitUses:0, tgsSpent:0, battleDiceRolled:0},
+								rounds: 0 };
 
 			//use upper left as an origin
 			//initially all the probability mass is concentrated at both fleets being unharmed
@@ -46,17 +48,30 @@
 				distribution[attacker.length][defender.length] = 1;
 				var problemArray = [new structs.Problem(distribution, attacker, defender)];
 				actions.forEach(function (action) {
-					if (action.appliesTo === battleType)
+					if (action.appliesTo === battleType){
 						problemArray = action.execute(problemArray, attackerFull, defenderFull, options, input);
+						if (action.name === 'Space Cannon -> Ships' || action.name === 'Space Cannon -> Ground Forces'){
+							var k=0;
+							for (var i=0; i<problemArray.length; i++){
+								k+=problemArray[i].distribution[0][0];
+								for (var a = 1; a < problemArray[i].distribution.rows - 1; a++)
+									k+=problemArray[i].distribution[a][0];
+								for (var d = 1; d < problemArray[i].distribution.columns - 1; d++)
+									k+=problemArray[i].distribution[0][d];
+							}
+							storedValues.rounds+=1-k;
+						}
+					}
 				});
 				// the most interesting part - actually compute outcome probabilities
-				
-				for (var i = 0; i < problemArray.length; ++i)
+				storedValues.attacker.tgsSpent += options.attacker.race === game.Race.Letnev && options.attacker.letnevMunitionsFunding && !options.attacker.munitions ? 2 * storedValues.rounds : 0;
+				storedValues.defender.tgsSpent += options.defender.race === game.Race.Letnev && options.defender.letnevMunitionsFunding && !options.defender.munitions ? 2 * storedValues.rounds : 0;
+				for (var i = 0; i < problemArray.length; ++i){
 					if (problemArray[i].attacker.length && problemArray[i].defender.length){
 						//console.log(JSON.parse(JSON.stringify(problemArray[i])));
-						solveProblem(problemArray[i], battleType, attackerFull, defenderFull, options,input );
+						solveProblem(problemArray[i], battleType, attackerFull, defenderFull, options,input, storedValues);
 					}
-
+				}
 				// format output
 				var finalDistribution = new structs.DistributionBase(-attacker.length, defender.length);
 				
@@ -89,7 +104,6 @@
 			var finalDefender = defender.map(function (unit) {
 				return [unit.shortType];
 			});
-			var tgsEarnedAttacker=0;
 			for (var i = finalDistribution.min; i <=0; i++){
 				var sustainDamages=0;
 				var probability = finalDistribution[i];
@@ -102,7 +116,7 @@
 						probability += finalDistribution[j];
 					}
 				}
-				tgsEarnedAttacker+= probability*sustainDamages;
+				storedValues.attacker.tgsEarned+= probability*sustainDamages;
 			}
 			var tgsEarnedDefender=0;
 			for (var i = finalDistribution.max; i >=0; i--){
@@ -117,13 +131,18 @@
 						probability += finalDistribution[j];
 					}
 				}
-				tgsEarnedDefender+= probability*sustainDamages;
+				storedValues.defender.tgsEarned+= probability*sustainDamages;
 			}
-			tgsEarnedAttacker=tgsEarnedAttacker===0 || !options.attacker.letnevCommander ? null : Math.round(tgsEarnedAttacker*100)/100 + " EA";
-			tgsEarnedDefender=tgsEarnedDefender===0 || !options.defender.letnevCommander ? null : Math.round(tgsEarnedDefender*100)/100 + " ED";
+			storedValues.attacker.tgsSpent += options.attacker.infiniteTG ? storedValues.attacker.battleDiceRolled * 0.1 : 0;
+			storedValues.defender.tgsSpent += options.defender.infiniteTG ? storedValues.defender.battleDiceRolled * 0.1 : 0;
+			storedValues.attacker.tgsSpent += options.attacker.race === game.Race.Letnev && options.attacker.munitions ? 2 * storedValues.rounds : 0;
+			storedValues.defender.tgsSpent += options.defender.race === game.Race.Letnev && options.defender.munitions ? 2 * storedValues.rounds : 0;
 
-			var tgsSpentAttacker=root.storedValues.attacker.tgsSpent === 0 ? null : Math.round(root.storedValues.attacker.tgsSpent*100)/100 + " SA";
-			var tgsSpentDefender=root.storedValues.defender.tgsSpent === 0 ? null : Math.round(root.storedValues.defender.tgsSpent*100)/100 + " SD";
+			storedValues.attacker.tgsEarned=storedValues.attacker.tgsEarned===0 || !options.attacker.letnevCommander ? null : storedValues.attacker.tgsEarned.toFixed(2) + " EA";
+			storedValues.defender.tgsEarned=storedValues.defender.tgsEarned===0 || !options.defender.letnevCommander ? null : storedValues.defender.tgsEarned.toFixed(2) + " ED";
+			storedValues.attacker.tgsSpent=storedValues.attacker.tgsSpent === 0 ? null : storedValues.attacker.tgsSpent.toFixed(2) + " SA";
+			storedValues.defender.tgsSpent=storedValues.defender.tgsSpent === 0 ? null : storedValues.defender.tgsSpent.toFixed(2) + " SD";
+			
 			return [{
 				distribution: finalDistribution,
 				attacker: finalAttacker.map(function (set) {
@@ -136,11 +155,11 @@
 						return prev + item;
 					});
 				}),
-			}, tgsEarnedAttacker, tgsEarnedDefender,tgsSpentAttacker, tgsSpentDefender];
+			}, storedValues];
 		}
 
 		/** Do full probability mass redistribution according to transition vectors */
-		function solveProblem(problem, battleType, attackerFull, defenderFull, options, input ) {
+		function solveProblem(problem, battleType, attackerFull, defenderFull, options, input,storedValues) {
 
 			var attackerBoost = boost(battleType, options.attacker, options.defender, problem.attacker, true);
 			var defenderBoost = boost(battleType, options.defender, options.attacker, problem.defender, true);
@@ -175,15 +194,16 @@
 				for (var j = 0;j<problem.distribution.columns;j++){
 					sum+=problem.distribution[i][j];
 				}
-				root.storedValues.attacker.battleDiceRolled+=dieRolled(problem.attacker, game.ThrowType.Battle, attackerRollBoost, i)*sum;
+				storedValues.attacker.battleDiceRolled+=dieRolled(problem.attacker, game.ThrowType.Battle, attackerRollBoost, i)*sum;
 			}
 			for (var j = 0; j<problem.distribution.columns;j++){
 				var sum=0;
 				for (var i = 0;i<problem.distribution.rows;i++){
 					sum+=problem.distribution[i][j];
 				}
-				root.storedValues.defender.battleDiceRolled+=dieRolled(problem.defender, game.ThrowType.Battle, defenderRollBoost, j)*sum;
+				storedValues.defender.battleDiceRolled+=dieRolled(problem.defender, game.ThrowType.Battle, defenderRollBoost, j)*sum;
 			}
+			//storedValues.rounds=1;
 			if (attackerBoost !== undefined || defenderBoost !== undefined || // boosts apply to the first round only
 				attackerRollBoost !== undefined || defenderRollBoost !== undefined ||
 				magenDefenseActivated || // Magen Defence applies to the first round
@@ -292,12 +312,10 @@
 				}
 			}
 			//console.log(JSON.parse(JSON.stringify(problem)));
-			propagateProbabilityUpLeft(problem, battleType, attackerFull, defenderFull, options,input);
-			root.storedValues.attacker.tgsSpent += options.attacker.infiniteTG ? root.storedValues.attacker.battleDiceRolled * 0.1 : 0;
-			root.storedValues.defender.tgsSpent += options.defender.infiniteTG ? root.storedValues.defender.battleDiceRolled * 0.1 : 0;
+			propagateProbabilityUpLeft(problem, battleType, attackerFull, defenderFull, options,input, storedValues);
 		}
 
-		function propagateProbabilityUpLeft(problem, battleType, attackerFull, defenderFull, options, input) {
+		function propagateProbabilityUpLeft(problem, battleType, attackerFull, defenderFull, options, input, storedValues) {
 			
 			var distr = problem.distribution;
 			// evaluate probabilities of transitions for each fleet
@@ -361,8 +379,9 @@
 						k = distr[a][d] / (1 - transitionMatrix.at(0, 0));
 					}
 
-					root.storedValues.attacker.battleDiceRolled += dieRolled(problem.attacker,game.ThrowType.Battle,rollBoost(battleType, options.defender, options.attacker, problem.defender, false,attackerFull),a)*k;
-					root.storedValues.defender.battleDiceRolled += dieRolled(problem.defender,game.ThrowType.Battle,rollBoost(battleType, options.attacker, options.defender, problem.attacker, false,defenderFull),d)*k;
+					storedValues.attacker.battleDiceRolled += dieRolled(problem.attacker,game.ThrowType.Battle,rollBoost(battleType, options.defender, options.attacker, problem.defender, false,attackerFull),a)*k;
+					storedValues.defender.battleDiceRolled += dieRolled(problem.defender,game.ThrowType.Battle,rollBoost(battleType, options.attacker, options.defender, problem.attacker, false,defenderFull),d)*k;
+					storedValues.rounds+=k;
 					for (var attackerInflicted = 0; attackerInflicted < transitionMatrix.rows; attackerInflicted++) {
 						for (var defenderInflicted = 0; defenderInflicted < transitionMatrix.columns && defenderInflicted <= a; defenderInflicted++) {
 							if (attackerInflicted === 0 && defenderInflicted === 0) continue;
@@ -1232,19 +1251,22 @@
 					name: 'Magen Omega',
 					appliesTo: game.BattleType.Ground,
 					execute: function (problemArray, attackerFull, defenderFull, options) {
-						if (!options.attacker.magenDefenseOmega && !options.defender.magenDefenseOmega) {
+
+						if ((!options.attacker.magenDefenseOmega && !options.defender.magenDefenseOmega)/* || (options.attacker.magenDefenseOmega && defenderLength ===0) || (options.defender.magenDefenseOmega && attackerLength ===0)*/) {
 							return problemArray;
 						}
 
 						var result = [];
 						problemArray.forEach(function (problem) {
 							var ensemble = new structs.EnsembleSplit(problem);
-							var attackerVictim = calculateVictims(problem.attacker, options.defender.magenDefenseOmega && (options.defender.hasDock || defenderFull.some(unitIs(game.UnitType.PDS))));
-							var defenderVictim = calculateVictims(problem.defender, options.attacker.magenDefenseOmega && (options.attacker.hasStructure || problem.attacker.some(unitIs(game.UnitType.PDS))));
+							var attackerVictims = calculateVictims(problem.attacker, options.defender.magenDefenseOmega && (options.defender.hasDock || defenderFull.some(unitIs(game.UnitType.PDS))));
+							var defenderVictims = calculateVictims(problem.defender, options.attacker.magenDefenseOmega && (options.attacker.hasStructure || problem.attacker.some(unitIs(game.UnitType.PDS))));
 							var distribution = problem.distribution;
 							for (var a = 0; a < distribution.rows; a++) {
 								for (var d = 0; d < distribution.columns; d++) {
 									if (distribution[a][d] === 0) continue;
+									var attackerVictim = a===0 ? structs.Victim.Null : attackerVictims;
+									var defenderVictim = d===0 ? structs.Victim.Null : defenderVictims;			
 									ensemble.increment(attackerVictim, defenderVictim, a, d, distribution[a][d]);
 								}
 							}

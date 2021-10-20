@@ -17,7 +17,9 @@
 
 	var transientProperties = {
 		costs: { attacker: { count: 0, cost: 0, }, defender: { count: 0, cost: 0, } },
-		storedValues: { attacker: { tgsEarned:null, tgsSpent:null }, defender: { tgsEarned:null, tgsSpent:null } },
+		storedValues:{attacker: {tgsEarned:0, yinAgentUses:0, reflectiveShieldingUses:0, directHitUses:0, tgsSpent:0}, 
+					defender: {tgsEarned:0, yinAgentUses:0, reflectiveShieldingUses:0, directHitUses:0, tgsSpent:0},
+					rounds: 0 },
 		showOptions: false,
 		showHelp: false,
 		computing: false,
@@ -39,6 +41,7 @@
 				else if (unitType === UnitType.Ground) return 'Infantry';
 				else return unitType;
 			},
+			
 			clear: function (side) {
 				for (var unitType in UnitType) {
 					this[SideUnits[side]][unitType].count = 0;
@@ -76,12 +79,11 @@
 					var valkyrieAndNonEuclidean = ((self.options.attacker.valkyrieParticleWeave && self.options.defender.nonEuclidean) || (self.options.defender.valkyrieParticleWeave && self.options.attacker.nonEuclidean)) && 
 						self.battleType === BattleType.Ground;
 					var dunlainMechs = (self.options.attacker.dunlainMechs || self.options.defender.dunlainMechs) && self.battleType === BattleType.Ground;
-					//var solCommander = self.options.defender.solCommander && self.battleType === BattleType.Ground;
 					var daxcive = self.options.attacker.daxcive;
 					if ((duraniumArmor || l1z1xFlagship || letnevFlagship || sardakkMech || reflective || l1z1xX89Omega || mentakH || yinA  || directHit || valkyrieAndNonEuclidean || dunlainMechs || /*solCommander ||*/ daxcive) || self.forceSlow){
-						[lastComputed, self.storedValues.attacker.tgsEarned, self.storedValues.defender.tgsEarned, self.storedValues.attacker.tgsSpent, self.storedValues.defender.tgsSpent] = imitator.estimateProbabilities(self);
+						[lastComputed, self.storedValues] = imitator.estimateProbabilities(self);
 					} else {
-						[lastComputed, self.storedValues.attacker.tgsEarned, self.storedValues.defender.tgsEarned, self.storedValues.attacker.tgsSpent, self.storedValues.defender.tgsSpent] = calculator.computeProbabilities(self);
+						[lastComputed, self.storedValues] = calculator.computeProbabilities(self);
 					}
 					self.displayDistribution(lastComputed);
 
@@ -476,12 +478,30 @@
 				var techKeys = Object.keys(Technologies);
 				for (var i = 0; i < techKeys.length; ++i){
 					var tech = Technologies[techKeys[i]];
-					result.push({
-						key: techKeys[i],
-						option: tech
-					});
+					if ((tech.availableFor("attacker", this.options.attacker.units, this.options.attacker.battleType,this.options) && tech.limitedToSide === 'attacker') && 
+						(i + 1 < techKeys.length) && 
+						(Technologies[techKeys[i+1]].availableFor("defender", this.options.defender.units, this.options.defender.battleType, this.options) && Technologies[techKeys[i+1]].limitedToSide === 'defender')){
+						result.push({
+							pair: {
+							[BattleSide.attacker]: {
+								key: techKeys[i],
+								option:Technologies[techKeys[i]],
+							},
+							[BattleSide.defender]: {
+								key: techKeys[i + 1],
+								option: Technologies[techKeys[i + 1]],
+							}
+						}});
+						i++;
+					} else {
+						if (tech.availableFor("attacker", this.options.attacker.units, this.options.attacker.battleType,this.options) || tech.availableFor("defender", this.options.defender.units, this.options.defender.battleType,this.options)){
+							result.push({
+								key: techKeys[i],
+								option: tech
+							});
+						}
+					}
 				}
-
 				return result;
 			},
 			actionCards: function() {
@@ -492,7 +512,6 @@
 					if ((tech.availableFor("attacker", this.options.attacker.units, this.options.attacker.battleType,this.options) && tech.limitedToSide === 'attacker') && 
 						(i + 1 < techKeys.length) && 
 						(ActionCards[techKeys[i+1]].availableFor("defender", this.options.defender.units, this.options.defender.battleType, this.options) && ActionCards[techKeys[i+1]].limitedToSide === 'defender')){
-						// special collapsing of Ω techs into one row
 						result.push({
 							pair: {
 							[BattleSide.attacker]: {
@@ -506,14 +525,15 @@
 						}});
 						i++;
 					} else {
-						result.push({
-							key: techKeys[i],
-							option: tech
-						});
+						if (tech.availableFor("attacker", this.options.attacker.units, this.options.attacker.battleType,this.options) || tech.availableFor("defender", this.options.defender.units, this.options.defender.battleType,this.options)){
+							result.push({
+								key: techKeys[i],
+								option: tech
+							});
+						}
 					}
 				}
 				return result;
-				
 			},
 			miscellaneous: function() {
 				var result = [];
@@ -535,10 +555,12 @@
 						}});
 						i++;
 					} else {
-						result.push({
-							key: techKeys[i],
-							option: tech
-						});
+						if (tech.availableFor("attacker", this.options.attacker.units, this.options.attacker.battleType,this.options) || tech.availableFor("defender", this.options.defender.units, this.options.defender.battleType,this.options)){
+							result.push({
+								key: techKeys[i],
+								option: tech
+							});
+						}
 					}
 				}
 				return result;
@@ -563,10 +585,12 @@
 						}});
 						i++;
 					} else {
-						result.push({
-							key: techKeys[i],
-							option: tech
-						});
+						if (tech.availableFor("attacker", this.options.attacker.units, this.options.attacker.battleType,this.options) || tech.availableFor("defender", this.options.defender.units, this.options.defender.battleType,this.options)){
+							result.push({
+								key: techKeys[i],
+								option: tech
+							});
+						}
 					}
 				}
 				return result;
@@ -710,35 +734,7 @@
 							}
 					};
 				}
-			},/*
-			promissory: function() {
-				var result = [];
-				var techKeys = Object.keys(Promissory);
-				for (var i = 0; i < techKeys.length; ++i){
-					var tech = Promissory[techKeys[i]];
-					if (tech.limitedToSide === "attacker" && (i + 1 < techKeys.length) && Promissory[techKeys[i+1]].limitedToSide === "defender"){
-						// special collapsing of Ω techs into one row
-						result.push({
-							pair: {
-							[BattleSide.attacker]: {
-								key: techKeys[i],
-								option: Promissory[techKeys[i]],
-							},
-							[BattleSide.defender]: {
-								key: techKeys[i + 1],
-								option: Promissory[techKeys[i + 1]],
-							}
-						}});
-						i++;
-					} else {
-						result.push({
-							key: techKeys[i],
-							option: tech
-						});
-					}
-				}
-				return result;
-			},*/
+			},
 			promissory: function() {
 				var result = [];
 				var techKeys = Object.keys(Promissory);
@@ -761,10 +757,12 @@
 						}});
 						i++;
 					} else {
-						result.push({
-							key: techKeys[i],
-							option: tech
-						});
+						if (tech.availableFor("attacker", this.options.attacker.units, this.options.attacker.battleType,this.options) || tech.availableFor("defender", this.options.defender.units, this.options.defender.battleType,this.options)){
+							result.push({
+								key: techKeys[i],
+								option: tech
+							});
+						}
 					}
 				}
 
@@ -783,7 +781,7 @@
 		template:
 		'<div class="o-grid__cell left-option" :class="{ hidden: !option.availableFor(side, options[side].units, options[side].battleType,options) }">' +
 		'	<label class="" v-bind:for="side + \'.\' + optionName"' +
-		'			v-bind:title="option.description">{{option.title}}</label>' +
+		'			v-bind:title="option.description">{{option.availableFor(side, options[side].units, options[side].battleType,options) ? option.name() : option.title}}</label>' +
 		'	<input type="checkbox" class="" v-bind:id="side + \'.\' + optionName"' +
 		'			v-model="options[side][optionName]">' +
 		'</div>',
@@ -795,7 +793,7 @@
 		'	<input type="checkbox" class="" v-bind:id="side + \'.\' + optionName"' +
 		'			v-model="options[side][optionName]">' +
 		'	<label class="" v-bind:for="side + \'.\' + optionName"' +
-		'			v-bind:title="option.description">{{option.title}}</label>' +
+		'			v-bind:title="option.description">{{option.availableFor(side, options[side].units, options[side].battleType,options) ? option.name() : option.title}}</label>' +
 		'</div>',
 	});
 	Vue.component('option-pair', {
@@ -817,7 +815,7 @@
 		'</div>',
 		methods: {
 			showHelp: function () {
-				alert(this.option.title + ':\n' + this.option.description);
+				alert(this.option.name() + ':\n' + this.option.description);
 			}
 		}
 	});
@@ -873,7 +871,7 @@
 					counter.participants = Math.min(counter.participants,counter.count);
 					counter.notBombarding = Math.min(counter.notBombarding,counter.count);
 				}
-				this.recompute();
+				//this.recompute();
 			},
 			deep: true
 		}
