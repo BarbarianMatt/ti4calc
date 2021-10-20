@@ -197,7 +197,7 @@
 							{{ attackerUnits[key].upgraded ? '\u25B2' : '\u25b3' }}
 						</button>
 						<select v-model="attackerUnits[key].damaged" class="form-control rounded-0"
-								:class="{ hidden: !damageable(options.attacker.race, key, attackerUnits[key].upgraded) }"
+								:class="{ hidden: !damageable(options.attacker.race, key, attackerUnits[key].upgraded, options.attacker) }"
 								title="Units already damaged before the battle">
 							<option v-for="c in damageableCount(attackerUnits[key].count)" v-bind:value="c">{{ c }}</option>
 						</select>
@@ -259,7 +259,7 @@
 							{{ defenderUnits[key].upgraded ? '\u25B2' : '\u25b3' }}
 						</button>
 						<select v-model="defenderUnits[key].damaged" class="form-control rounded-0"
-								:class="{ hidden: !damageable(options.defender.race, key, defenderUnits[key].upgraded) }"
+								:class="{ hidden: !damageable(options.defender.race, key, defenderUnits[key].upgraded, options.defender) }"
 								title="Units already damaged before the battle">
 							<option v-for="c in damageableCount(defenderUnits[key].count)" v-bind:value="c">{{ c }}</option>
 						</select>
@@ -307,17 +307,32 @@
 	</div>
 	<div id="options" class="text-light" :class="{ collapsed: !showOptions }">
 		<div class="heading"><strong>Technologies</strong></div>
+
 		<option-pair v-for="technology in technologies"
-					:option-name="technology.key" :option="technology.option" :pair="technology.pair" :options="options" :visible="technology.key !== 'hasDock' || !!options.defender.magenDefenseOmega"></option-pair>
-		<option-pair v-for="pair in raceTechnologies" :pair="pair" :options="options"></option-pair>
+					:option-name="technology.key" :option="technology.option" :pair="technology.pair" :options="options" :visible="(technology.key !== 'hasDock' && technology.key !== 'x89Conservative' && technology.key !== 'hasStructure' && technology.key !== 'plasmaScoringFirstRound') || (technology.key === 'plasmaScoringFirstRound' && options.attacker.race === 'L1Z1X' && options.attacker.plasmaScoring) || (technology.key === 'hasDock' && options.defender.magenDefenseOmega) || (technology.key === 'hasStructure' && options.attacker.magenDefenseOmega) || (technology.key === 'x89Conservative' && options.attacker.x89Omega) || (technology.key === 'x89Conservative' && options.attacker.x89Omega)"></option-pair>
+					
+					<option-pair v-for="pair in raceTechnologies" :pair="pair" :options="options"></option-pair>
+					
 		<div class="heading"><strong>Action Cards</strong></div>
-		<option-pair v-for="(option, key) in ActionCards"
-						:option-name="key" :option="option" :options="options"></option-pair>
-		<div class="heading"><strong>Agendas / Promissory / Racial</strong></div>
+		<option-pair v-for="action in actionCards"
+						:option-name="action.key" :option="action.option" :pair="action.pair" :options="options" :visible="(action.key !== 'directHit2A' && action.key !== 'directHit3A' && action.key !== 'directHit4A' && action.key !== 'directHit2D' && action.key !== 'directHit3D' && action.key !== 'directHit4D' ) 
+						|| (action.key === 'directHit2A' && options.attacker.directHit) || (action.key === 'directHit3A' && options.attacker.directHit2A) || (action.key === 'directHit4A' && options.attacker.directHit3A)
+						|| (action.key === 'directHit2D' && options.defender.directHit) || (action.key === 'directHit3D' && options.defender.directHit2D) || (action.key === 'directHit4D' && options.defender.directHit3D)"></option-pair>
+		<div class="heading"><strong>Leaders</strong></div>
+		<option-pair v-for="leader in leaders"
+						:option-name="leader.key" :option="leader.option" :pair="leader.pair" :options="options" :visible="(leader.key !== 'argentCommanderFirstRound') || (leader.key === 'argentCommanderFirstRound' && options.attacker.race === 'L1Z1X' && options.attacker.argentCommander)"></option-pair>
+		<option-pair v-for="pair in heroes" :pair="pair" :options="options"></option-pair>
+		<div class="heading"><strong>Agendas / Promissory / Racial / Miscellaneous</strong></div>
 		<option-pair v-for="(option, key) in Agendas"
 					 :option-name="key" :option="option" :options="options"></option-pair>
 		<option-pair v-for="(option, key) in Promissory"
-					 :option-name="key" :option="option" :options="options"></option-pair>
+					 :option-name="key" :option="option" :options="options" :visible="(key !== 'hasMemoriaIIA' && key !== 'hasMemoriaIID' && key !== 'argentStrikeWingBombardmentA' && key !== 'argentStrikeWingSpaceCannonA' && key !== 'argentStrikeWingBarrageA' && key !== 'argentStrikeWingBarrageD' && key !== 'argentStrikeWingSpaceCannonD') 
+					 || (key === 'hasMemoriaIIA' && options.attacker.nomadCavalry) || (key === 'hasMemoriaIID' && options.defender.nomadCavalry)
+					 || ((key === 'argentStrikeWingBombardmentA' || key === 'argentStrikeWingSpaceCannonA' || key === 'argentStrikeWingBarrageA')   && options.attacker.argentStrikeWing)
+					 || (( key === 'argentStrikeWingSpaceCannonD' || key === 'argentStrikeWingBarrageD')   && options.defender.argentStrikeWing)"></option-pair>
+		<option-pair v-for="mis in miscellaneous"
+					:option-name="mis.key" :option="mis.option" :pair="mis.pair" :options="options" :visible="true"></option-pair>
+		<option-pair v-for="pair in raceOptions" :pair="pair" :options="options"></option-pair>
 		<div class="row">
 			<div class="col"></div>
 			<div id="chart-size-selector" class="col form-inline">

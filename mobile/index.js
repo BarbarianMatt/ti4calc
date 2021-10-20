@@ -18,6 +18,7 @@
 
 	var transientProperties = {
 		costs: { attacker: { count: 0, cost: 0, }, defender: { count: 0, cost: 0, } },
+		storedValues: { attacker: { tgsEarned:null, tgsSpent:null }, defender: { tgsEarned:null, tgsSpent:null } },
 		showOptions: false,
 		showHelp: false,
 		computing: false,
@@ -57,16 +58,34 @@
 				// veeery poor man's background processing
 				setTimeout(function () {
 					// unfortunately some game aspects are hard to handle in the calculator
-					var duraniumArmor = self.options.attacker.duraniumArmor || self.options.defender.duraniumArmor;
-					var l1z1xFlagship = self.options.attacker.race === Race.L1Z1X && self.attackerUnits.Flagship.count !== 0 ||
-						self.options.defender.race === Race.L1Z1X && self.defenderUnits.Flagship.count !== 0;
-					var letnevFlagship = self.options.attacker.race === Race.Letnev && self.attackerUnits.Flagship.count !== 0 ||
-						self.options.defender.race === Race.Letnev && self.defenderUnits.Flagship.count !== 0;
-					if ((duraniumArmor || l1z1xFlagship || letnevFlagship) && self.battleType === BattleType.Space || self.forceSlow)
-						lastComputed = imitator.estimateProbabilities(self);
-					else
-						lastComputed = calculator.computeProbabilities(self);
 
+					var duraniumArmor = self.options.attacker.duraniumArmor || self.options.defender.duraniumArmor;
+					var l1z1xFlagship = (self.options.attacker.race === Race.L1Z1X && self.attackerUnits.Flagship.count !== 0 ||
+						self.options.defender.race === Race.L1Z1X && self.defenderUnits.Flagship.count !== 0) && self.battleType === BattleType.Space;
+					var letnevFlagship = (self.options.attacker.race === Race.Letnev && self.attackerUnits.Flagship.count !== 0 ||
+						self.options.defender.race === Race.Letnev && self.defenderUnits.Flagship.count !== 0) && self.battleType === BattleType.Space;
+					// I could not figure out how to have it so that when sardakk's mechs sustain damage in the normal calculator, only then would they produce a hit, may be possible but IDK
+
+					var sardakkMech = (self.options.attacker.race === Race.Sardakk && self.attackerUnits.Mech.count !== 0 ||
+						self.options.defender.race === Race.Sardakk && self.defenderUnits.Mech.count !== 0) && self.battleType === BattleType.Ground && !self.options.attacker.articlesOfWar;
+					//var sardakkMech = false;
+					// Same reason as Sardakk Mechs
+					var reflective = (self.options.attacker.reflectiveShielding || self.options.defender.reflectiveShielding) && self.battleType === BattleType.Space;
+				
+					var l1z1xX89Omega = (self.options.attacker.race === Race.L1Z1X && self.options.attacker.x89);
+					var mentakH = (self.options.attacker.mentakHero || self.options.defender.mentakHero) && self.battleType === BattleType.Space;
+					var yinA = (self.options.attacker.yinAgent || self.options.defender.yinAgent) && self.battleType === BattleType.Space;
+					var directHit = (self.options.attacker.directHit || self.options.defender.directHit) && self.battleType === BattleType.Space;
+					var valkyrieAndNonEuclidean = ((self.options.attacker.valkyrieParticleWeave && self.options.defender.nonEuclidean) || (self.options.defender.valkyrieParticleWeave && self.options.attacker.nonEuclidean)) && 
+						self.battleType === BattleType.Ground;
+					var dunlainMechs = (self.options.attacker.dunlainMechs || self.options.defender.dunlainMechs) && self.battleType === BattleType.Ground;
+					//var solCommander = self.options.defender.solCommander && self.battleType === BattleType.Ground;
+					var daxcive = self.options.attacker.daxcive;
+					if ((duraniumArmor || l1z1xFlagship || letnevFlagship || sardakkMech || reflective || l1z1xX89Omega || mentakH || yinA  || directHit || valkyrieAndNonEuclidean || dunlainMechs || /*solCommander ||*/ daxcive) || self.forceSlow){
+						[lastComputed, self.storedValues.attacker.tgsEarned, self.storedValues.defender.tgsEarned, self.storedValues.attacker.tgsSpent, self.storedValues.defender.tgsSpent] = imitator.estimateProbabilities(self);
+					} else {
+						[lastComputed, self.storedValues.attacker.tgsEarned, self.storedValues.defender.tgsEarned, self.storedValues.attacker.tgsSpent, self.storedValues.defender.tgsSpent] = calculator.computeProbabilities(self);
+					}
 					self.displayDistribution(lastComputed);
 
 					self.computing = false;
@@ -297,17 +316,32 @@
 				var techKeys = Object.keys(Technologies);
 				for (var i = 0; i < techKeys.length; ++i){
 					var tech = Technologies[techKeys[i]];
-					if (tech.limitedTo === BattleSide.attacker && (i + 1 < techKeys.length) && Technologies[techKeys[i+1]].limitedTo === BattleSide.defender){
+					result.push({
+						key: techKeys[i],
+						option: tech
+					});
+				}
+
+				return result;
+			},
+			actionCards: function() {
+				var result = [];
+				var techKeys = Object.keys(ActionCards);
+				for (var i = 0; i < techKeys.length; ++i){
+					var tech = ActionCards[techKeys[i]];
+					if ((tech.availableFor("attacker", this.options.attacker.units, this.options.attacker.battleType,this.options) && tech.limitedToSide === 'attacker') && 
+						(i + 1 < techKeys.length) && 
+						(ActionCards[techKeys[i+1]].availableFor("defender", this.options.defender.units, this.options.defender.battleType, this.options) && ActionCards[techKeys[i+1]].limitedToSide === 'defender')){
 						// special collapsing of Ω techs into one row
 						result.push({
 							pair: {
 							[BattleSide.attacker]: {
 								key: techKeys[i],
-								option: Technologies[techKeys[i]],
+								option: ActionCards[techKeys[i]],
 							},
 							[BattleSide.defender]: {
 								key: techKeys[i + 1],
-								option: Technologies[techKeys[i + 1]],
+								option: ActionCards[techKeys[i + 1]],
 							}
 						}});
 						i++;
@@ -318,14 +352,101 @@
 						});
 					}
 				}
-
+				return result;
+				
+			},
+			miscellaneous: function() {
+				var result = [];
+				var techKeys = Object.keys(Miscellaneous);
+				for (var i = 0; i < techKeys.length; ++i){
+					var tech = Miscellaneous[techKeys[i]];
+					if (tech.limitedToSide === "attacker" && (i + 1 < techKeys.length) && Miscellaneous[techKeys[i+1]].limitedToSide === "defender"){
+						// special collapsing of Ω techs into one row
+						result.push({
+							pair: {
+							[BattleSide.attacker]: {
+								key: techKeys[i],
+								option: Miscellaneous[techKeys[i]],
+							},
+							[BattleSide.defender]: {
+								key: techKeys[i + 1],
+								option: Miscellaneous[techKeys[i + 1]],
+							}
+						}});
+						i++;
+					} else {
+						result.push({
+							key: techKeys[i],
+							option: tech
+						});
+					}
+				}
+				return result;
+			},
+			leaders: function() {
+				var result = [];
+				var techKeys = Object.keys(Leaders);
+				for (var i = 0; i < techKeys.length; ++i){
+					var tech = Leaders[techKeys[i]];
+					if (tech.limitedToSide === "attacker" && (i + 1 < techKeys.length) && Leaders[techKeys[i+1]].limitedToSide === "defender"){
+						// special collapsing of Ω techs into one row
+						result.push({
+							pair: {
+							[BattleSide.attacker]: {
+								key: techKeys[i],
+								option: Leaders[techKeys[i]],
+							},
+							[BattleSide.defender]: {
+								key: techKeys[i + 1],
+								option: Leaders[techKeys[i + 1]],
+							}
+						}});
+						i++;
+					} else {
+						result.push({
+							key: techKeys[i],
+							option: tech
+						});
+					}
+				}
 				return result;
 			},
 			raceTechnologies: function () {
-				var attackerTech = RaceSpecificTechnologies[this.options.attacker.race] || {};
-				var defenderTech = RaceSpecificTechnologies[this.options.defender.race] || {};
+				var attackerTech = Object.assign({},RaceSpecificTechnologies[this.options.attacker.race] || {});
+				var defenderTech = Object.assign({},RaceSpecificTechnologies[this.options.defender.race] || {});
+				if (this.options.defender.race === Race.Virus){
+					defenderTech = {...defenderTech, ...(this.defenderUnits.Flagship.upgraded ? {memoriaII : VirusUpgrades[this.options.defender.race].memoriaII} : {})};
+					defenderTech = {...defenderTech, ...(this.defenderUnits.WarSun.upgraded ? {protoWarSunII : VirusUpgrades[this.options.defender.race].protoWarSunII} : {})};
+					defenderTech = {...defenderTech, ...(this.defenderUnits.Dreadnought.upgraded ? {superDreadnoughtII : VirusUpgrades[this.options.defender.race].superDreadnoughtII, exotriremeII : VirusUpgrades[this.options.defender.race].exotriremeII} : {})};
+					defenderTech = {...defenderTech, ...(this.defenderUnits.Cruiser.upgraded ? {saturnEngineII : VirusUpgrades[this.options.defender.race].saturnEngineII} : {})};
+					defenderTech = {...defenderTech, ...(this.defenderUnits.Carrier.upgraded ? {advancedCarrierII : VirusUpgrades[this.options.defender.race].advancedCarrierII} : {})};
+					defenderTech = {...defenderTech, ...(this.defenderUnits.Destroyer.upgraded ? {strikeWingII : VirusUpgrades[this.options.defender.race].strikeWingII} : {})};
+					defenderTech = {...defenderTech, ...(this.defenderUnits.Fighter.upgraded ? {crystalFighterII : VirusUpgrades[this.options.defender.race].crystalFighterII} : {})};
+					defenderTech = {...defenderTech, ...(this.defenderUnits.Ground.upgraded ? {specOpsII : VirusUpgrades[this.options.defender.race].specOpsII} : {})};
+					defenderTech = {...defenderTech, ...(this.defenderUnits.PDS.upgraded ? {helTitanII : VirusUpgrades[this.options.defender.race].helTitanII} : {})};
+				}
+				if (this.options.attacker.race === Race.Virus){
+					attackerTech = {...attackerTech, ...(this.attackerUnits.Flagship.upgraded ? {memoriaII : VirusUpgrades[this.options.attacker.race].memoriaII} : {})};
+					attackerTech = {...attackerTech, ...(this.attackerUnits.WarSun.upgraded ? {protoWarSunII : VirusUpgrades[this.options.attacker.race].protoWarSunII} : {})};
+					attackerTech = {...attackerTech, ...(this.attackerUnits.Dreadnought.upgraded ? {superDreadnoughtII : VirusUpgrades[this.options.attacker.race].superDreadnoughtII, exotriremeII : VirusUpgrades[this.options.attacker.race].exotriremeII} : {})};
+					attackerTech = {...attackerTech, ...(this.attackerUnits.Cruiser.upgraded ? {saturnEngineII : VirusUpgrades[this.options.attacker.race].saturnEngineII} : {})};
+					attackerTech = {...attackerTech, ...(this.attackerUnits.Carrier.upgraded ? {advancedCarrierII : VirusUpgrades[this.options.attacker.race].advancedCarrierII} : {})};
+					attackerTech = {...attackerTech, ...(this.attackerUnits.Destroyer.upgraded ? {strikeWingII : VirusUpgrades[this.options.attacker.race].strikeWingII} : {})};
+					attackerTech = {...attackerTech, ...(this.attackerUnits.Fighter.upgraded ? {crystalFighterII : VirusUpgrades[this.options.attacker.race].crystalFighterII} : {})};
+					attackerTech = {...attackerTech, ...(this.attackerUnits.Ground.upgraded ? {specOpsII : VirusUpgrades[this.options.attacker.race].specOpsII} : {})};
+					attackerTech = {...attackerTech, ...(this.attackerUnits.PDS.upgraded ? {helTitanII : VirusUpgrades[this.options.attacker.race].helTitanII} : {})};
+				}
+				for (var tech in defenderTech){
+					if (!defenderTech[tech].availableFor("defender", this.options.defender.units, this.options.defender.battleType, this.options))
+						delete defenderTech[tech];
+				}
+				for (var tech in attackerTech){
+					if (!attackerTech[tech].availableFor("attacker", this.options.attacker.units, this.options.attacker.battleType,this.options))
+						delete attackerTech[tech];
+				}
 				var attackerTechKeys = Object.keys(attackerTech);
 				var defenderTechKeys = Object.keys(defenderTech);
+
 				var result = [];
 				for (var i = 0; i < attackerTechKeys.length || i < defenderTechKeys.length; ++i) {
 					var pair = {};
@@ -333,10 +454,88 @@
 						key: attackerTechKeys[i],
 						option: attackerTech[attackerTechKeys[i]],
 					} : stub(defenderTech[defenderTechKeys[i]].title);
+
 					pair.defender = i < defenderTechKeys.length ? {
 						key: defenderTechKeys[i],
 						option: defenderTech[defenderTechKeys[i]],
 					} : stub(attackerTech[attackerTechKeys[i]].title);
+					result.push(pair);
+				}
+				return result;
+
+				function stub(name) {
+					return {
+						key: '',
+						option:
+							{
+								title: name,
+								availableFor: function () {
+									return false;
+								}
+							}
+					};
+				}
+			},
+			heroes: function () {
+				var attackerOption = Heroes[this.options.attacker.race] || {};
+				var defenderOption = Heroes[this.options.defender.race] || {};
+				var attackerOptionKeys = Object.keys(attackerOption);
+				var defenderOptionKeys = Object.keys(defenderOption);
+				var result = [];
+				for (var i = 0; i < attackerOptionKeys.length || i < defenderOptionKeys.length; ++i) {
+					var pair = {};
+					pair.attacker = i < attackerOptionKeys.length ? {
+						key: attackerOptionKeys[i],
+						option: attackerOption[attackerOptionKeys[i]],
+					} : stub(defenderOption[defenderOptionKeys[i]].title);
+					pair.defender = i < defenderOptionKeys.length ? {
+						key: defenderOptionKeys[i],
+						option: defenderOption[defenderOptionKeys[i]],
+					} : stub(attackerOption[attackerOptionKeys[i]].title);
+					result.push(pair);
+				}
+				return result;
+
+				function stub(name) {
+					return {
+						key: '',
+						option:
+							{
+								title: name,
+								availableFor: function () {
+									return false;
+								}
+							}
+					};
+				}
+			},
+			raceOptions: function () {
+				var attackerOption = Object.assign({}, RacialSpecific[this.options.attacker.race] || {});
+				var defenderOption = Object.assign({},RacialSpecific[this.options.defender.race] || {});
+				//console.log(JSON.parse(JSON.stringify(this.options.attacker.units)));
+				console.log(this.options.attacker);
+				for (var option in attackerOption){
+					if (!attackerOption[option].availableFor("attacker", this.options.attacker.units, this.options.attacker.battleType, this.options))
+						delete attackerOption[option];
+				}
+				for (var option in defenderOption){
+					if (!defenderOption[option].availableFor("defender", this.options.defender.units, this.options.defender.battleType, this.options))
+						delete defenderOption[option];
+				}
+				var attackerOptionKeys = Object.keys(attackerOption);
+				var defenderOptionKeys = Object.keys(defenderOption);
+				var result = [];
+
+				for (var i = 0; i < attackerOptionKeys.length || i < defenderOptionKeys.length; ++i) {
+					var pair = {};
+					pair.attacker = i < attackerOptionKeys.length ? {
+						key: attackerOptionKeys[i],
+						option: attackerOption[attackerOptionKeys[i]],
+					} : stub(defenderOption[defenderOptionKeys[i]].title);
+					pair.defender = i < defenderOptionKeys.length ? {
+						key: defenderOptionKeys[i],
+						option: defenderOption[defenderOptionKeys[i]],
+					} : stub(attackerOption[attackerOptionKeys[i]].title);
 					result.push(pair);
 				}
 				return result;
@@ -380,7 +579,7 @@
 	Vue.component('side-option', {
 		props: ['optionName', 'option', 'options', 'side'],
 		template:
-		'<div class="col-5" :class="{ hidden: !option.availableFor(side) }">' +
+		'<div class="col-5" :class="{ hidden: !option.availableFor(side, options[side].units, options[side].battleType, options) }">' +
 		'	<button type="button" class="btn rounded-0 w-100"' +
 		'			:class="{ \'btn-secondary-outline\': !options[side][optionName],' +
 		'						\'btn-secondary\': !options[side][optionName] }"' +
@@ -395,8 +594,8 @@
 		'<div class="row no-gutters" v-if="visible !== false">' +
 		'	<side-option :option-name="option ? optionName : pair.attacker.key" :option="option || pair.attacker.option" :options="options" side="attacker"></side-option>' +
 		'	<help-mark v-if="option" :option="option" col="2"></help-mark>' +
-		'	<help-mark v-if="pair" :option="pair.attacker.option" :class="{ hidden: !pair.attacker.option.availableFor(\'attacker\') }" col="1"></help-mark>' +
-		'	<help-mark v-if="pair" :option="pair.defender.option" :class="{ hidden: !pair.defender.option.availableFor(\'defender\') }" col="1"></help-mark>' +
+		'	<help-mark v-if="pair" :option="pair.attacker.option" :class="{ hidden: !pair.attacker.option.availableFor(\'attacker\', options.attacker.units, options.attacker.battleType, options) }" col="1"></help-mark>' +
+		'	<help-mark v-if="pair" :option="pair.defender.option" :class="{ hidden: !pair.defender.option.availableFor(\'defender\', options.defender.units, options.defender.battleType, options) }" col="1"></help-mark>' +
 		'	<side-option :option-name="option ? optionName : pair.defender.key" :option="option || pair.defender.option" :options="options" side="defender"></side-option>' +
 		'</div>',
 	});
@@ -426,7 +625,7 @@
 				if (!upgradeable(newRace, unitType)) {
 					counter.upgraded = false;
 				}
-				if (!damageable(newRace, unitType, counter.upgraded)) {
+				if (!damageable(newRace, unitType, counter.upgraded, this.options[battleSide])) {
 					counter.damaged = 0;
 				}
 			}
@@ -505,6 +704,9 @@
 		for (var promissory in Promissory) {
 			result.options.attacker[promissory] = false;
 		}
+		for (var mis in Miscellaneous) {
+			result.options.attacker[mis] = false;
+		}
 		result.options.attacker.riskDirectHit = true;
 
 		result.options.defender = Object.assign({}, result.options.attacker);
@@ -513,6 +715,8 @@
 			result.attackerUnits[unitType] = { count: 0, upgraded: false, damaged: 0 };
 			result.defenderUnits[unitType] = { count: 0, upgraded: false, damaged: 0 };
 		}
+		result.options.attacker.units=result.attackerUnits;
+		result.options.defender.units=result.defenderUnits;
 		return result;
 	}
 
