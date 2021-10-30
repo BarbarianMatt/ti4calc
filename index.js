@@ -47,6 +47,13 @@
 					this[SideUnits[side]][unitType].count = 0;
 					this[SideUnits[side]][unitType].upgraded = false;
 				}
+				for (var options in displayableOptions) {
+					for (var option in displayableOptions[options]){
+						//console.log(displayableOptions[options][option]);
+						//console.log(this.options[side]);
+						this.options[side][displayableOptions[options][option]] = false;
+					}
+				}
 			},
 			recompute: function () {
 				this.tallyCosts();
@@ -859,6 +866,10 @@
 					this.options[battleSide][option] = false;
 				}
 			}
+			for (var num in startingTech[newRace]){
+				var tech= startingTech[newRace][num];
+				this.options[battleSide][tech] = true;
+			}
 		};
 	}
 
@@ -932,6 +943,7 @@
 			result.options.attacker[mis] = false;
 		}
 		result.options.attacker.riskDirectHit = true;
+		result.options.attacker.magenDefenseOmega = true;
 
 		result.options.defender = Object.assign({}, result.options.attacker);
 

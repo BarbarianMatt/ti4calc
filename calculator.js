@@ -792,7 +792,7 @@
 
 						var result = [];
 						problemArray.forEach(function (problem) {
-							console.log(problem.attacker);
+							//console.log(problem.attacker);
 							var ensemble = new structs.EnsembleSplit(problem);
 							var attackerThreshold = findAssaultCannonThreshold(problem.attacker, options.attacker.assaultCannon);
 							var defenderThreshold = findAssaultCannonThreshold(problem.defender, options.defender.assaultCannon);

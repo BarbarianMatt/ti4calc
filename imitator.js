@@ -9,7 +9,7 @@
 		game = window;
 	}
 
-	root.imitationIterations = 30000;
+	root.imitationIterations = 20000;
 	root.imitator = (function () {
 
 		var prebattleActions = initPrebattleActions();
@@ -187,26 +187,27 @@
 				winnuFlagships(defender, options.defender, attacker);
 				var attackerInflictedToNonFighters = 0, attackerInflictedToEverything = 0;
 				var defenderInflictedToNonFighters = 0, defenderInflictedToEverything = 0;
+				var attackerRolling = options.attacker.daxcive ? attackerFull.filterForBattle() : attacker;
 				if (options.attacker.race === game.Race.L1Z1X && attacker.some(unitIs(game.UnitType.Flagship))) {
-					attackerInflictedToNonFighters = rollDice(attacker.filter(flagshipOrDreadnought), game.ThrowType.Battle, attackerBoost, attackerReroll, attackerBoostRoll, options.attacker);
-					attackerInflictedToEverything = rollDice(attacker.filter(not(flagshipOrDreadnought)), game.ThrowType.Battle, attackerBoost, attackerReroll, attackerBoostRoll, options.attacker);
+					attackerInflictedToNonFighters = rollDice(attackerRolling.filter(flagshipOrDreadnought), game.ThrowType.Battle, attackerBoost, attackerReroll, attackerBoostRoll, options.attacker);
+					attackerInflictedToEverything = rollDice(attackerRolling.filter(not(flagshipOrDreadnought)), game.ThrowType.Battle, attackerBoost, attackerReroll, attackerBoostRoll, options.attacker);
 				} else
-					attackerInflictedToEverything = rollDice(attacker, game.ThrowType.Battle, attackerBoost, attackerReroll, attackerBoostRoll, options.attacker);
+					attackerInflictedToEverything = rollDice(attackerRolling, game.ThrowType.Battle, attackerBoost, attackerReroll, attackerBoostRoll, options.attacker);
 				if (options.defender.race === game.Race.L1Z1X && defender.some(unitIs(game.UnitType.Flagship))) {
 					defenderInflictedToNonFighters = rollDice(defender.filter(flagshipOrDreadnought), game.ThrowType.Battle, defenderBoost, defenderReroll, defenderBoostRoll, options.defender);
 					defenderInflictedToEverything = rollDice(defender.filter(not(flagshipOrDreadnought)), game.ThrowType.Battle, defenderBoost, defenderReroll, defenderBoostRoll, options.defender);
 				} else
 					defenderInflictedToEverything = rollDice(defender, game.ThrowType.Battle, defenderBoost, defenderReroll, defenderBoostRoll, options.defender);
-				//console.log("attacker damage: " + JSON.parse(JSON.stringify(attackerInflictedToEverything)));
-				//console.log("defender damage: " + JSON.parse(JSON.stringify(defenderInflictedToEverything)));
+				/*console.log(JSON.parse(JSON.stringify(attackerRolling)));
+				console.log(JSON.parse(JSON.stringify(defender)));
+				console.log("attacker damage: " + JSON.parse(JSON.stringify(attackerInflictedToEverything)));
+				console.log("defender damage: " + JSON.parse(JSON.stringify(defenderInflictedToEverything)));*/
 				if (round === 1 && magenDefenseActivatedDefender) {
 					attackerInflictedToEverything = 0;
 				}
 				if (round === 1 && magenDefenseActivatedAttacker) {
 					defenderInflictedToEverything = 0;
 				}
-				//console.log("attacker damage: " + JSON.parse(JSON.stringify(attackerInflictedToEverything)));
-				//console.log("defender damage: " + JSON.parse(JSON.stringify(defenderInflictedToEverything)));
 				if (battleType === game.BattleType.Ground) {
 					var attackerAdditional = 0;
 					var defenderAdditional = 0;
@@ -219,19 +220,18 @@
 					attackerInflictedToEverything += attackerAdditional;
 					defenderInflictedToEverything += defenderAdditional;
 				}
-				//console.log(JSON.parse(JSON.stringify(defender)));
 				[attackerInflictedToNonFighters,defenderInflictedToNonFighters]=sustainDamageStep(attacker, attackerInflictedToNonFighters, defender, defenderInflictedToNonFighters,
 				true, [null,notFighterShip(true)], [null,notFighterShip(true)], options,input);
 				[attackerInflictedToEverything,defenderInflictedToEverything]=sustainDamageStep(attacker, attackerInflictedToEverything, defender, defenderInflictedToEverything,
 				true, [null,null], [null,null], options,input);
-				//console.log("attacker damage: " + JSON.parse(JSON.stringify(attackerInflictedToEverything)));
-				//console.log(JSON.parse(JSON.stringify(defender)));
-				//console.log("end");
+				
 				var A1 = applyDamage(attacker, defenderInflictedToNonFighters, options.attacker, null, notFighterShip(true));
 				var A2 = applyDamage(attacker, defenderInflictedToEverything, options.attacker);
 				var D1 = applyDamage(defender, attackerInflictedToNonFighters, options.defender, null, notFighterShip(true));
 				var D2 = applyDamage(defender, attackerInflictedToEverything, options.defender);
-
+				/*console.log(JSON.parse(JSON.stringify(attacker)));
+				console.log(JSON.parse(JSON.stringify(defender)));
+				console.log("end");*/
 				var aDeadUnits=A1.concat(A2);
 				var dDeadUnits=D1.concat(D2);
 

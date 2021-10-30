@@ -248,6 +248,29 @@
 			l4Disruptors: new Option('L4 Disruptors', 'During an Invasion units cannot use Space Cannon against you', 'attacker'),
 		},
 	};
+	root.displayableOptions = [
+		Object.getOwnPropertyNames(root.ActionCards).filter(function(item) { return item !== "riskDirectHit"}), 
+		Object.getOwnPropertyNames(root.Technologies), 
+		Object.getOwnPropertyNames(root.Agendas),
+		Object.getOwnPropertyNames(root.Promissory),
+		Object.getOwnPropertyNames(root.Miscellaneous),
+		Object.getOwnPropertyNames(root.Leaders),
+		];
+	root.startingTech = {
+		Arborec: ['magenDefenseOmega'],
+		Hacan: ['antimassDeflectors'],
+		JolNar: ['antimassDeflectors', 'plasmaScoring'],
+		L1Z1X: ['plasmaScoring'],
+		Letnev: ['antimassDeflectors'],
+		Mentak: ['plasmaScoring'],
+		Muaat: ['plasmaScoring'],
+		Virus: ['daxcive'],
+		Saar: ['antimassDeflectors'],
+		Sol: ['antimassDeflectors'],
+		Xxcha: ['gravitonLaser'],
+		Argent: ['plasmaScoring'],
+		Titans: ['antimassDeflectors'],
+	};
 	root.VirusUpgrades = {
 		Virus :{
 			advancedCarrierII : new Option('Advanced Carrier II', "Nekro copied Sol's Advanced Carrier II"),
