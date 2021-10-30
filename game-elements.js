@@ -178,7 +178,7 @@
 		hasDock: new Option('Has Dock', 'Defender has a dock for Magen Defence Grid Ω', 'defender', undefined, undefined, 'defender.magenDefenseOmega', 'hasDock'), // not a technology itself, but it's nice to show it close to Magen Defence Grid Ω
 		duraniumArmor: new Option('Duranium Armor', 'After each round repair 1 unit that wasn\'t damaged this round'),
 		assaultCannon: new Option('Assault Cannon', 'Opponent destroys 1 non-Fighter ship if you have at least 3 non-Fighters'),
-		//daxcive: new Option('Daxcive Animators', 'Ground Forces that die get to roll one more time'),
+		daxcive: new Option('Daxcive Animators', 'Ground Forces that die continue to roll'),
 		x89Omega: new Option('X-89 Bacterial Weapon Ω', 'Destroy all Infantry by bombardment if at least one is destroyed', 'attacker'),
 		x89Conservative: new Option('Assign X-89 Hits Conservatively', 'Sacrifice other Ground Forces if it prevents X-89 Bacterial Weapon Ω from activating', 'defender', undefined, 'Ground', 'attacker.x89Omega', 'x89Conservative'),
 	};
@@ -198,7 +198,7 @@
 		argentStrikeWingBarrageA: new Option('Strike Wing Anti-Fighter BarrageA', 'Use Strike Wind Ambuscade on your Anti-Fighter Barrage roll','attacker',undefined, undefined, 'attacker.argentStrikeWing', 'argentStrikeWingBarrageA'),	
 		argentStrikeWingBarrageD: new Option('Strike Wing Anti-Fighter BarrageD', 'Use Strike Wind Ambuscade on your Anti-Fighter Barrage roll','defender',undefined, undefined, 'defender.argentStrikeWing'),
 		argentStrikeWingBombardmentA: new Option('Strike Wing Bombardment', 'Use Strike Wind Ambuscade on your Bombardment roll','attacker',undefined, undefined, 'attacker.argentStrikeWing', 'argentStrikeWingBarrageD'),
-		nomadCavalry: new Option('The Cavalry', 'Weakest non-fighter ship gains the Sustain Damage ability, Combat value, and Anti-Fighter Barrage value of the Nomad Flagship. Cannot be used against the Nomad', 'argentStrikeWingBombardmentA'),
+		nomadCavalry: new Option('The Cavalry', 'Weakest non-fighter ship gains the Sustain Damage ability, Combat value, and Anti-Fighter Barrage value of the Nomad Flagship. Cannot be used against the Nomad'),
 		hasMemoriaIIA: new Option('Has Memoria II', 'The Nomad has Memoria II', 'attacker', undefined, undefined, 'attacker.nomadCavalry', 'hasMemoriaIIA'),
 		hasMemoriaIID: new Option('Has Memoria II', 'The Nomad has Memoria II','defender', undefined, undefined, 'defender.nomadCavalry', 'hasMemoriaIID'),
 	};
