@@ -539,10 +539,10 @@
 						console.log("defender damage: " + JSON.parse(JSON.stringify(defenderInflicted)));
 						console.log("Space Cannon");*/
 
-						var attackerPredicate = options.attacker.gravitonLaser ? notFighterShip(false) : validUnit(false);
-						var defenderPredicate = options.defender.gravitonLaser ? notFighterShip(false) : validUnit(false);
+						var attackerPredicate = options.attacker.gravitonLaser ? notFighterShip(false) : null;
+						var defenderPredicate = options.defender.gravitonLaser ? notFighterShip(false) : null;
 						[attackerInflicted,defenderInflicted]=sustainDamageStep(attacker, attackerInflicted, defender, defenderInflicted, false,
-						[null,attackerPredicate], [null,defenderPredicate], options,input);
+						[validUnit(false),attackerPredicate], [validUnit(false),defenderPredicate], options,input);
 						/*console.log(JSON.parse(JSON.stringify(attacker)));
 						console.log(JSON.parse(JSON.stringify(defender)));
 						console.log("attacker damage: " + JSON.parse(JSON.stringify(attackerInflicted)));
