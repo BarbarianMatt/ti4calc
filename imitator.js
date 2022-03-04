@@ -9,7 +9,7 @@
 		game = window;
 	}
 
-	root.imitationIterations = 20000;
+	root.imitationIterations = 100000;
 	root.imitator = (function () {
 
 		var prebattleActions = initPrebattleActions();
@@ -395,7 +395,7 @@
 			function searchForSustainDamage(fleet,myHits,opponentHits,mySide, hardPredicate, softPredicate){
 				for (var i = fleet.length - 1; Math.max(fleet.length - opponentHits,0) <= i && 0 < opponentHits; i--) {
 					var unit = fleet[i];
-					if (unit.isDamageGhost && (combat || unit.typeGroundForce) && hardPredicate(unit) && (!softPredicate || softPredicate(unit))){
+					if (unit.isDamageGhost && hardPredicate(unit) && (!softPredicate || softPredicate(unit))){
 						if (options[mySide].letnevCommander)
 							root.storedValues[mySide].tgsEarned++;
 						opponentHits=Math.max(opponentHits-(options[mySide].nonEuclidean ? 2 : 1),0);
@@ -409,7 +409,7 @@
 				if (softPredicate){
 					for (var i = fleet.length - 1; 0 <= i && 0 < opponentHits; i--) {
 						var unit = fleet[i];
-						if (unit.isDamageGhost && (combat || unit.typeGroundForce) && hardPredicate(unit)){
+						if (unit.isDamageGhost && hardPredicate(unit)){
 							if (options[mySide].letnevCommander)
 								root.storedValues[mySide].tgsEarned++;
 							opponentHits=Math.max(opponentHits-(options[mySide].nonEuclidean ? 2 : 1),0);
@@ -532,11 +532,22 @@
 						defenderInflicted= options.attacker.solarFlare || (attacker.some(unitIs(game.UnitType.Flagship)) && options.attacker.race === game.Race.Argent) ? 0 : Math.max(defenderInflicted-(options.attacker.maneuveringJets ? 1 : 0),0);
 						defenderInflicted = options.defender.noSpaceCannon ? 0 : defenderInflicted;
 						
-						var attackerPredicate = options.attacker.gravitonLaser ? notFighterShip(false) : null;
-						var defenderPredicate = options.defender.gravitonLaser ? notFighterShip(false) : null;
+						
+						/*console.log(JSON.parse(JSON.stringify(attacker)));
+						console.log(JSON.parse(JSON.stringify(defender)));
+						console.log("attacker damage: " + JSON.parse(JSON.stringify(attackerInflicted)));
+						console.log("defender damage: " + JSON.parse(JSON.stringify(defenderInflicted)));
+						console.log("Space Cannon");*/
+
+						var attackerPredicate = options.attacker.gravitonLaser ? notFighterShip(false) : validUnit(false);
+						var defenderPredicate = options.defender.gravitonLaser ? notFighterShip(false) : validUnit(false);
 						[attackerInflicted,defenderInflicted]=sustainDamageStep(attacker, attackerInflicted, defender, defenderInflicted, false,
 						[null,attackerPredicate], [null,defenderPredicate], options,input);
-						
+						/*console.log(JSON.parse(JSON.stringify(attacker)));
+						console.log(JSON.parse(JSON.stringify(defender)));
+						console.log("attacker damage: " + JSON.parse(JSON.stringify(attackerInflicted)));
+						console.log("defender damage: " + JSON.parse(JSON.stringify(defenderInflicted)));
+						console.log("Space Cannon2");*/
 						var aDeadUnits = applyDamage(defender, attackerInflicted, options.defender, validUnit(false), attackerPredicate);
 						var dDeadUnits = applyDamage(attacker, defenderInflicted, options.attacker, validUnit(false), defenderPredicate);
 						destroyedUnits(aDeadUnits,dDeadUnits,attacker,defender,false,options,input);
@@ -636,10 +647,10 @@
 						attackerInflicted = options.attacker.noBarrage ? 0 : attackerInflicted;
 						var defenderInflicted = rollDice(defenderBarrageUnits, game.ThrowType.Barrage, 0, defenderReroll, moreDieForStrongestUnit(defenderBarrageUnits, game.ThrowType.Barrage, defenderExtraDie), options.defender);
 						defenderInflicted = options.defender.noBarrage ? 0 : defenderInflicted;
-
+						
 						if ((attackerInflicted > defender.filter(unitIsFighter()).length) && options.attacker.race === game.Race.Argent){
 							var damages=attackerInflicted-defender.filter(unitIsFighter()).length;
-							for (var i=defender.length-1; i>=0 || damages>0; i--){
+							for (var i=defender.length-1; i>=0 && damages>0; i--){
 								var unit = defender[i] || {};
 								if (unit.isDamageGhost){
 									unit.damageCorporeal.damaged = true;
@@ -652,7 +663,7 @@
 
 						if (defenderInflicted > attacker.filter(unitIsFighter()).length && options.defender.race === game.Race.Argent){
 							var damages=defenderInflicted-attacker.filter(unitIsFighter()).length;
-							for (var i = attacker.length - 1 ; i >= 0 || damages>0; i--){
+							for (var i = attacker.length - 1 ; i >= 0 && damages>0; i--){
 								var unit = attacker[i] || {};
 								if (unit.isDamageGhost){
 									unit.damageCorporeal.damaged = true;
@@ -664,12 +675,14 @@
 						}
 						var attackerPredicate = options.defender.waylay ? null : (attacker.filter(unitIsFighter()).length>=defenderInflicted ? unitIsFighterOrCancelHit() : unitIsFighter());
 						var defenderPredicate = options.attacker.waylay ? null : (defender.filter(unitIsFighter()).length>=attackerInflicted ? unitIsFighterOrCancelHit() : unitIsFighter());
+
 						[attackerInflicted,defenderInflicted]=sustainDamageStep(attacker, attackerInflicted, defender, defenderInflicted, true, 
 						[attackerPredicate, null], [defenderPredicate, null], options,input);
+
 						var dDeadUnits = applyDamage(defender, attackerInflicted, options.attacker, defenderPredicate);
 						var aDeadUnits = applyDamage(attacker, defenderInflicted, options.defender, attackerPredicate);
 						destroyedUnits(aDeadUnits,dDeadUnits,attacker,defender,true,options,input);
-						
+
 
 						function hasBarrage(unit) {
 							return unit.barrageDice !== 0;
@@ -850,7 +863,7 @@
 							if (myFleet.filter(unitIs(game.UnitType.Mech)).length < 4 && myFleet.some(unitIs(game.UnitType.Ground))){
 								for (var i = myFleet.length-1; i >= 0; i--) {
 									var unit = myFleet[i];
-									if (unit.type == game.UnitType.Ground){
+									if (unit.type === game.UnitType.Ground){
 										myFleet.splice(i, 1);
 										addUnitBasedOnRace(game.UnitType.Mech,mySide,opponentSide,options,myFleet,opponentFleet,input)
 										organizeFleet(myFleet,mySide,options,input);
@@ -875,12 +888,79 @@
 					},
 				},
 				{
+					name: 'Yin Indoctrination',
+					appliesTo: game.BattleType.Ground,
+					execute: function (attacker, defender, attackerFull, defenderFull, options, input) {
+						if (!(hasUnits(attacker) && hasUnits(defender))) return;
+						//console.log(JSON.parse(JSON.stringify(attacker)));
+						//console.log(JSON.parse(JSON.stringify(defender)));
+						if ((options.attacker.race === game.Race.Yin && options.attacker.indoctrinate && !options.attacker.indoctrinateMechOmegaA) || 
+							(options.defender.race !== game.Race.Yin && options.attacker.race !== game.Race.Yin && defender.length>=2 && options.attacker.greyfireMutagenOmega))
+							replaceGround('attacker','defender',options,attacker,defender,input)
+						if ((options.defender.race === game.Race.Yin && options.defender.indoctrinate && !options.defender.indoctrinateMechOmegaD) || 
+							(options.attacker.race !== game.Race.Yin && options.defender.race !== game.Race.Yin && attacker.length>=2 && options.defender.greyfireMutagenOmega))
+							replaceGround('defender','attacker',options,defender,attacker,input)
+						if (options.attacker.race === game.Race.Yin && options.attacker.indoctrinateMechOmegaA)
+							replaceMech('attacker','defender',options,attacker,defender,input)
+						if (options.defender.race === game.Race.Yin && options.defender.indoctrinateMechOmegaD)
+							replaceMech('defender','attacker',options,defender,attacker,input)
+						//console.log(JSON.parse(JSON.stringify(defender)));
+						//console.log(JSON.parse(JSON.stringify(attacker)));
+						function replaceGround(mySide,opponentSide,options,myFleet,opponentFleet,input) {
+							if (opponentFleet.some(unitIs(game.UnitType.Ground))){
+								for (var i = opponentFleet.length-1; i >= 0; i--) {
+									var unit = opponentFleet[i];
+									if (unit.type === game.UnitType.Ground){
+										opponentFleet.splice(i, 1);
+										var addedUnit = (mySide === "attacker" && options[mySide].indoctrinateMechA) || (mySide === "defender" && options[mySide].indoctrinateMechD) ? game.UnitType.Mech : game.UnitType.Ground;
+										addUnitBasedOnRace(addedUnit,mySide,opponentSide,options,myFleet,opponentFleet,input);
+										
+										/*for (var i=0; i<myFleet.length; i++){
+											if (myFleet[i].type === game.UnitType.Mech && !myFleet[i].isDamageGhost){
+												myFleet.splice(i,1);
+												break;
+											}
+										}*/
+
+										organizeFleet(myFleet,mySide,options,input);
+										organizeFleet(opponentFleet,opponentSide,options,input);
+										storedValues[options[mySide].side].tgsSpent+= addedUnit === game.UnitType.Mech ? 3 : 2;
+										return;
+									}
+								}
+							}
+							return;
+						}
+
+						function replaceMech(mySide,opponentSide,options,myFleet,opponentFleet,input) {
+							if (opponentFleet.some(unitIs(game.UnitType.Mech))){
+								for (var i = opponentFleet.length-1; i >= 0; i--) {
+									var unit = opponentFleet[i];
+									if (unit.type === game.UnitType.Mech){
+										opponentFleet.splice(i, 1);
+										if (unit.isDamageGhost){	
+											unit = unit.damageCorporeal;
+											opponentFleet.splice(opponentFleet.indexOf(unit),1);
+										}
+										addUnitBasedOnRace(game.UnitType.Mech,mySide,opponentSide,options,myFleet,opponentFleet,input)
+										organizeFleet(myFleet,mySide,options,input);
+										organizeFleet(opponentFleet,opponentSide,options,input);
+										storedValues[options[mySide].side].tgsSpent+= 4;
+										return;
+									}
+								}
+							}
+							return;
+						}
+					},
+				},
+				{
 					name: 'Magen Defense Omega',
 					appliesTo: game.BattleType.Ground,
 					execute: function (attacker, defender, attackerFull, defenderFull, options, input) {
 						if (!(hasUnits(attacker) && hasUnits(defender))) return;
-						var attackerInflicted= (options.attacker.magenDefenseOmega && attacker.some(unit.typeStructure)) ? 1 : 0;
-						var defenderInflicted= (options.defender.magenDefenseOmega && (defenderFull.some(unit.typeStructure) || defender.hasDock)) ? 1 : 0;
+						var attackerInflicted= (options.attacker.magenDefenseOmega && attacker.some(unitIsStructure())) ? 1 : 0;
+						var defenderInflicted= (options.defender.magenDefenseOmega && (defenderFull.some(unitIsStructure()) || defender.hasDock)) ? 1 : 0;
 						[attackerInflicted,defenderInflicted]=sustainDamageStep(attacker, attackerInflicted, defender, defenderInflicted, true,
 						[null,null], [null,null], options,input);
 						var aDeadUnits =applyDamage(attacker, defenderInflicted, options.attacker);
@@ -1126,6 +1206,12 @@
 		function unitIs(unitType) {
 			return function (unit) {
 				return unit.type === unitType && !unit.isDamageGhost;
+			};
+		}
+
+		function unitIsStructure() {
+			return function (unit) {
+				return unit.typeStructure;
 			};
 		}
 

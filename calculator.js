@@ -66,7 +66,12 @@
 				// the most interesting part - actually compute outcome probabilities
 				storedValues.attacker.tgsSpent += options.attacker.race === game.Race.Letnev && options.attacker.letnevMunitionsFunding && !options.attacker.munitions ? 2 * storedValues.rounds : 0;
 				storedValues.defender.tgsSpent += options.defender.race === game.Race.Letnev && options.defender.letnevMunitionsFunding && !options.defender.munitions ? 2 * storedValues.rounds : 0;
+				//console.log(JSON.parse(JSON.stringify(problemArray)));
 				for (var i = 0; i < problemArray.length; ++i){
+					if (problemArray[i].defender.length > defender.length)
+						defender= problemArray[i].defender;
+					if (problemArray[i].attacker.length > attacker.length)
+						attacker= problemArray[i].attacker;
 					if (problemArray[i].attacker.length && problemArray[i].defender.length){
 						//console.log(JSON.parse(JSON.stringify(problemArray[i])));
 						solveProblem(problemArray[i], battleType, attackerFull, defenderFull, options,input, storedValues);
@@ -81,6 +86,7 @@
 				var finalDefender = defender.map(function (unit) {
 					return [unit.shortType];
 				});
+				//console.log(JSON.parse(JSON.stringify(finalDefender)));
 				problemArray.forEach(function (problem) {
 					finalDistribution[0] = finalDistribution.at(0) + problem.distribution[0][0];
 
@@ -89,9 +95,11 @@
 						if (finalAttacker[a - 1].indexOf(problem.attacker[a - 1].shortType) < 0)
 							finalAttacker[a - 1].push(problem.attacker[a - 1].shortType);
 					}
-
+					//console.log(JSON.parse(JSON.stringify(finalDefender)));
 					for (var d = 1; d < problem.distribution.columns; d++) {
+						//console.log(d);
 						finalDistribution[d] = finalDistribution.at(d) + problem.distribution[0][d];
+						//console.log(JSON.parse(JSON.stringify(finalDistribution)));
 						if (finalDefender[d - 1].indexOf(problem.defender[d - 1].shortType) < 0)
 							finalDefender[d - 1].push(problem.defender[d - 1].shortType);
 					}
@@ -791,21 +799,26 @@
 						}
 
 						var result = [];
+						//console.log(JSON.parse(JSON.stringify(problemArray)));
 						problemArray.forEach(function (problem) {
 							//console.log(problem.attacker);
 							var ensemble = new structs.EnsembleSplit(problem);
+							//console.log(JSON.parse(JSON.stringify(ensemble)));
 							var attackerThreshold = findAssaultCannonThreshold(problem.attacker, options.attacker.assaultCannon);
 							var defenderThreshold = findAssaultCannonThreshold(problem.defender, options.defender.assaultCannon);
+							//console.log(JSON.parse(JSON.stringify(attackerThreshold,defenderThreshold)));
 							var attackerVictims = calculateVictims(problem.attacker, defenderThreshold < problem.defender.length, true);
 							var defenderVictims = calculateVictims(problem.defender, attackerThreshold < problem.attacker.length, false);
-
+							//console.log(JSON.parse(JSON.stringify(defenderVictims)));
 							//console.log(defenderVictims);
 							var distribution = problem.distribution;
 							for (var a = 0; a < distribution.rows; a++) {
 								for (var d = 0; d < distribution.columns; d++) {
 									if (distribution[a][d] === 0) continue;
+									//console.log(a,d);
 									var attackerVictim = defenderThreshold < d ? attackerVictims[a] : structs.Victim.Null;
 									var defenderVictim = attackerThreshold < a ? defenderVictims[d] : structs.Victim.Null;
+									console.log(JSON.parse(JSON.stringify(defenderVictim)));
 									ensemble.increment(attackerVictim, defenderVictim, a, d, distribution[a][d]);
 								}
 							}
@@ -815,6 +828,7 @@
 							});
 							result.push.apply(result, subproblems);
 						});
+						console.log(JSON.parse(JSON.stringify(result)));
 						return result;
 
 						function findAssaultCannonThreshold(fleet, assaultCannon) {
@@ -829,7 +843,9 @@
 						}
 
 						function calculateVictims(fleet, victimsNeeded, canTakeIntoGroundForces) {
+							
 							var result = new Array(fleet.length + 1);
+							//console.log(JSON.parse(JSON.stringify(result)));
 							if (!victimsNeeded)
 								result.fill(structs.Victim.Null);
 							else {
@@ -854,6 +870,7 @@
 									result[i + 1] = v;
 								}
 							}
+							//console.log(JSON.parse(JSON.stringify(result)));
 							return result;
 						}
 					},
@@ -1194,7 +1211,7 @@
 						var result = [];
 						problemArray.forEach(function (problem) {
 							//console.log(JSON.parse(JSON.stringify(problem)));
-							var unit = game.MergedUnits[options.defender.race][game.UnitType.Ground]
+							var unit = game.MergedUnits[options.defender.race][game.UnitType.Ground];
 							problem.defender.push(unit);
 							problem.defender.sort(problem.defender.comparer);
 							var index = findGroundForceIndex(problem.defender)+1;
@@ -1210,7 +1227,7 @@
 									}
 								}
 							}
-							//console.log(ranges);
+							console.log(ranges);
 							for(var i=ranges[1]; i>=ranges[0]; i--){
 								var tempProblem = JSON.parse(JSON.stringify(problem));
 								if (i!=ranges[0]){
@@ -1234,7 +1251,7 @@
 								result.push(tempProblem);
 							}
 						});
-						//console.log(JSON.parse(JSON.stringify(result)));
+						console.log(JSON.parse(JSON.stringify(result)));
 						return result;
 
 						function findGroundForceIndex(fleet){
@@ -1246,7 +1263,121 @@
 						}
 					},
 				},
-				
+				{
+					name: 'Yin Indoctrination',
+					appliesTo: game.BattleType.Ground,
+					execute: function (problemArray, attackerFull, defenderFull, options) {
+						var lengthD=0;
+						var lengthA=0;
+						//console.log(JSON.parse(JSON.stringify(problemArray)));
+						problemArray.forEach(function (problem){
+							lengthD+=problem.defender.length;
+							lengthA+=problem.attacker.length;
+						})
+						if (!(options.defender.indoctrinate || options.attacker.indoctrinate || lengthA>0 || lengthD>0))
+							return problemArray;
+						var result = [];
+						problemArray.forEach(function (problem) {
+							var ensemble = new structs.EnsembleSplit(problem);
+							var distribution = problem.distribution;
+
+							var gfIndexA = findGroundForceIndex(problem.attacker);
+							//var gfPlaceA = findPlaceForUnit(problem.attacker,game.MergedUnits[options.attacker.race][game.UnitType.Ground]);
+
+							var gfIndexD = findGroundForceIndex(problem.defender);
+							//var gfPlaceD = findPlaceForUnit(problem.defender,game.MergedUnits[options.defender.race][game.UnitType.Ground]);
+
+							var indocThresholdA = findIndocThreshold(problem.defender, options.attacker.race !== game.Race.Yin && options.attacker.greyfireMutagenOmega);
+							var indocThresholdD = findIndocThreshold(problem.attacker, options.defender.race !== game.Race.Yin && options.defender.greyfireMutagenOmega);
+							var unit = game.MergedUnits[options.attacker.race][game.UnitType.Mech];
+							var cool = [unit.clone().toDamageGhost()];
+							var cool2 = findPlaceForUnits(problem.attacker,cool);
+							console.log(JSON.parse(JSON.stringify(cool2)));
+
+							for (var a = 0; a < distribution.rows; a++) {
+								for (var d = 0; d < distribution.columns; d++) {
+
+									if (distribution[a][d] === 0 || d==0 || a==0) continue;
+									//console.log(JSON.parse(JSON.stringify(ensemble)));
+									var defenderCondition = (options.defender.indoctrinate && options.defender.race === game.Race.Yin) || (options.defender.race !== game.Race.Yin && options.attacker.race !== game.Race.Yin && options.defender.greyfireMutagenOmega);
+									var attackerCondition = (options.attacker.indoctrinate && options.attacker.race === game.Race.Yin) || (options.attacker.race !== game.Race.Yin && options.defender.race !== game.Race.Yin && options.attacker.greyfireMutagenOmega);
+									
+									
+									var v = new structs.Victim();
+									v.addRange(gfIndexA, undefined);
+									
+									var attackerVictim = a > gfIndexA && d > 0 && a > indocThresholdD && defenderCondition ? v : structs.Victim.Null;
+									
+									var v = new structs.Victim();
+									v.addRange(gfIndexD, undefined);
+									
+									
+									var defenderVictim = d > gfIndexD && a > 0 && d > indocThresholdA && attackerCondition ? v : structs.Victim.Null;
+
+									var unit = game.MergedUnits[options.attacker.race][game.UnitType.Ground];
+									var attackerIndocUnit = defenderVictim === structs.Victim.Null ? [[],[]] : 
+									[[unit],[cool2]];
+
+									var defenderIndocUnit = attackerVictim === structs.Victim.Null ? [] : 
+									[game.MergedUnits[options.defender.race][game.UnitType.Ground]];
+									//console.log(JSON.parse(JSON.stringify(defenderIndocUnit)));
+
+									//console.log(JSON.parse(JSON.stringify(attackerVictim)));
+									ensemble.increment3(attackerVictim, defenderVictim, a, d, distribution[a][d], attackerIndocUnit, defenderIndocUnit);
+
+									//console.log(JSON.parse(JSON.stringify(ensemble)));
+									//console.log("end");
+								}
+							}
+							var subproblems = ensemble.getSubproblems();
+							subproblems.forEach(function (subproblem) {
+								collapseYinFlagship(subproblem, options, problem);
+							});
+							result.push.apply(result, subproblems);
+						});
+						//console.log(JSON.parse(JSON.stringify(result)));
+						return result;
+
+
+						function findGroundForceIndex(fleet){
+							for(var i=0;i<fleet.length;i++){
+								if (fleet[i].type == "Ground")
+									return i;
+							}
+							return Infinity;
+						}
+
+						function findPlaceForUnits(fleet,units){
+							var tempFleet=[];
+							Object.assign(tempFleet,fleet);
+							tempFleet.push(...units);
+							tempFleet.sort(tempFleet.comparer);
+							var result = [];
+							for (var i=0; i<units.length;i++){
+								for(var j=0;j<tempFleet.length;j++){
+									if (units[i]===tempFleet[j]){
+										result[i]= j;
+										break;
+									}
+								}
+								if (units[i]===tempFleet[j])
+									continue;
+							}
+							return result;
+						}
+
+						function findIndocThreshold(fleet, greyfire) {
+							var groundForcesFound = 0;
+							for (var i = 0; i < fleet.length; i++) {
+								if (groundForce(fleet[i]))
+									groundForcesFound++;
+								if (groundForcesFound >= 2 && greyfire)
+									return i;
+							}
+							return greyfire ? i : 0;
+						}
+					},
+				},
 				{
 					name: 'Magen Omega',
 					appliesTo: game.BattleType.Ground,
@@ -1801,6 +1932,10 @@
 		}	
 		function notFighterShip(unit) {
 			return unit.type !== game.UnitType.Fighter && !unit.isDamageGhost && unit.typeShip;
+		}
+
+		function groundForce(unit) {
+			return unit.typeGroundForce && !unit.isDamageGhost;
 		}
 
 		function notFighterNorGroundForceShip(unit) {
