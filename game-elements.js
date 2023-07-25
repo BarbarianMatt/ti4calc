@@ -1,5 +1,4 @@
 (function (root) {
-
 	root.dieSides = 10;
 
 	root.BattleType = {
@@ -33,6 +32,7 @@
 		Mech: 'Mech',
 		Ground: 'Ground',
 		PDS: 'PDS',
+		Planet: 'Planet',
 	};
 	
 	root.UnitType = UnitType;
@@ -45,10 +45,11 @@
 		Destroyer: '+',
 		Carrier: 'V',
 		Fighter: 'F',
-		Ground: 'G',
 		Mech: 'M',
+		Ground: 'G',
 		PDS: 'P',
 		GhostHit:'T',
+		Planet: 'J'
 	};
 
 	root.Race = {
@@ -76,6 +77,7 @@
 		Nomad: 'Nomad',
 		Titans: 'Titans',
 		Cabal: 'Cabal',
+		Keleres: 'Keleres',
 	};
 
 	root.RacesDisplayNames = {
@@ -103,6 +105,7 @@
 		Nomad: 'Nomad',
 		Titans: 'Titans of Ul',
 		Cabal: "Vuil'Raith Cabal",
+		Keleres: 'Council Keleres',
 	};
 
 	function Option(title, description, limitedToSide, limitedToUnit, limitedToBattle, limitedToOption, pointer) {
@@ -128,6 +131,15 @@
 		}
 		return o;
 	}
+	Object.secondProperties = function(o){
+		var output = [];
+		for (var options in o){
+			for (var option in o[options]){
+				output += o[options][option];
+			}
+		}
+		return output;
+	}
 	Option.prototype.availableFor = function (battleSide, thisSideUnits, battleType, options) {
 		var condition = (this.limitedToSide === undefined || this.limitedToSide === battleSide) && 
 						(this.limitedToUnit === undefined || thisSideUnits[this.limitedToUnit].count>0) &&
@@ -148,40 +160,44 @@
 		moraleBoost: new Option('Morale Boost 1st round', '+1 dice modifier to all units during the first battle round'),
 		fireTeam: new Option('Fire Team 1st round', 'Reroll dice after first round of invasion combat'),
 		fighterPrototype: new Option('Fighter Prototype', '+2 dice modifier to Fighters during the first battle round'),
-		experimentalBattlestation: new Option('Experimental Battlestation', 'Additional unit with Space Cannon 5(x3)'),
 		maneuveringJets: new Option('Maneuvering Jets', 'Cancel 1 Space Cannon hit'),
 		riskDirectHit: new Option('Risk Direct Hit', 'Damage units vulnerable to Direct Hit before killing off fodder'),
 		directHit: new Option('Direct Hit', "After another player's ship uses Sustain Damage, destroy that ship"),
-		directHit2A: new Option('Direct Hit2A', "After another player's ship uses Sustain Damage, destroy that ship", 'attacker', undefined, undefined, 'attacker.directHit', 'directHit2A'),
-		directHit2D: new Option('Direct Hit2D', "After another player's ship uses Sustain Damage, destroy that ship", 'defender', undefined, undefined, 'defender.directHit', 'directHit2D'),
-		directHit3A: new Option('Direct Hit3A', "After another player's ship uses Sustain Damage, destroy that ship", 'attacker', undefined, undefined, 'attacker.directHit2A', 'directHit3A'),
-		directHit3D: new Option('Direct Hit3D', "After another player's ship uses Sustain Damage, destroy that ship", 'defender', undefined, undefined, 'defender.directHit2D', 'directHit3D'),
-		directHit4A: new Option('Direct Hit4A', "After another player's ship uses Sustain Damage, destroy that ship", 'attacker', undefined, undefined, 'attacker.directHit3A', 'directHit4A'),
-		directHit4D: new Option('Direct Hit4D', "After another player's ship uses Sustain Damage, destroy that ship", 'defender', undefined, undefined, 'defender.directHit3D', 'directHit4D'),
-		disable: new Option('Disable', "Opponents' PDS lose Planetary Shield and Space Cannon"),
+		directHit2A: new Option('Direct Hit2A', "After another player's ship uses Sustain Damage, destroy that ship", 'attacker', undefined, undefined, 'attacker.directHit'),
+		directHit2D: new Option('Direct Hit2D', "After another player's ship uses Sustain Damage, destroy that ship", 'defender', undefined, undefined, 'defender.directHit'),
+		directHit3A: new Option('Direct Hit3A', "After another player's ship uses Sustain Damage, destroy that ship", 'attacker', undefined, undefined, 'attacker.directHit2A'),
+		directHit3D: new Option('Direct Hit3D', "After another player's ship uses Sustain Damage, destroy that ship", 'defender', undefined, undefined, 'defender.directHit2D'),
+		directHit4A: new Option('Direct Hit4A', "After another player's ship uses Sustain Damage, destroy that ship", 'attacker', undefined, undefined, 'attacker.directHit3A'),
+		directHit4D: new Option('Direct Hit4D', "After another player's ship uses Sustain Damage, destroy that ship", 'defender', undefined, undefined, 'defender.directHit3D'),
 		reflectiveShielding: new Option('Reflective Shielding', 'Produce 2 hits when one of your ships uses Sustain Damage'),
-		solarFlare: new Option('Solar Flare', 'Other players cannot use SPACE CANNON against your ships'),
 		waylay: new Option('Waylay', 'Hits from anti-fighter barrage are produced against all ships'),
+		disable: new Option('Disable', "Opponents' PDS lose Planetary Shield and Space Cannon",'attacker'),
+		experimentalBattlestation: new Option('Experimental Battlestation', 'Additional unit with Space Cannon 5(x3)','defender'),
 		blitz: new Option('Blitz', 'Each non-fighter ship without Bombardment gains Bombardment 6', 'attacker'),
 		bunker: new Option('Bunker', '-4 dice modifier to Bombardment rolls', 'defender'),
+		solarFlare: new Option('Solar Flare', 'Other players cannot use SPACE CANNON against your ships', 'attacker'),
 		rout: new Option('Rout', 'Your Opponent must retreat at the end of the first round of space combat', 'defender'),
 	};
-
 	root.Technologies = {
 		antimassDeflectors: new Option('Antimass Deflectors', '-1 to opponents\' Space Cannon rolls'),
 		gravitonLaser: new Option('Graviton Laser System', 'Space Cannon hits should be applied to non-fighters if possible'),
+		gravitonLaserC: new Option('Graviton Laser System*', 'Space Cannon or Bombardment hits should be applied to non-fighters or non-infantry if possible'),
 		plasmaScoring: new Option('Plasma Scoring', 'One additional die for one unit during Space Cannon or Bombardment'),
+		plasmaScoringC: new Option('Plasma Scoring*', 'One guarenteed hit on unit ability rolls'),
 		plasmaScoringFirstRound: new Option('Plasma Scoring Not Used Initially', "Plasma Scoring isn't used in the initial Bombardment", 'attacker'),
 		magenDefense: new Option('Magen Defense Grid', 'Opponent doesn\'t throw dice for one round if you have Planetary Shield'),
 		magenDefenseOmega: new Option('Magen Defense Grid Ω', '1 hit at the start of ground combat when having structures'),
+		magenDefenseC: new Option('Magen Defense Grid*', 'Planets with structures have Space Cannon 4'),
 		//hasStructure: new Option('Has Structure', 'Attacker has a structure on the planet somehow for Magen Defence Grid Ω', 'attacker'), // not a technology itself, but it's nice to show it close to Magen Defence Grid Ω
-		hasDock: new Option('Has Dock', 'Defender has a dock for Magen Defence Grid Ω', 'defender', undefined, undefined, 'defender.magenDefenseOmega', 'hasDock'), // not a technology itself, but it's nice to show it close to Magen Defence Grid Ω
+		hasDock: new Option('Has Dock', 'Defender has a dock for Magen Defence Grid Ω', 'defender'), // not a technology itself, but it's nice to show it close to Magen Defence Grid Ω
 		duraniumArmor: new Option('Duranium Armor', 'After each round repair 1 unit that wasn\'t damaged this round'),
 		assaultCannon: new Option('Assault Cannon', 'Opponent destroys 1 non-Fighter ship if you have at least 3 non-Fighters'),
-		daxcive: new Option('Daxcive Animators', 'Ground Forces that die continue to roll'),
 		x89Omega: new Option('X-89 Bacterial Weapon Ω', 'Destroy all Infantry by bombardment if at least one is destroyed', 'attacker'),
-		x89Conservative: new Option('Assign X-89 Hits Conservatively', 'Sacrifice other Ground Forces if it prevents X-89 Bacterial Weapon Ω from activating', 'defender', undefined, 'Ground', 'attacker.x89Omega', 'x89Conservative'),
+		//x89Conservative: new Option('Assign X-89 Hits Conservatively', 'Sacrifice other Ground Forces if it prevents X-89 Bacterial Weapon Ω from activating', 'defender', undefined, 'Ground', 'attacker.x89Omega', 'x89Conservative'),
+		infantryIIA: new Option('Infantry*', 'Infantry continue to roll till the end of the ground combat', 'attacker',undefined,'Ground','attacker.units.Ground.upgraded'),
+		infantryIID: new Option('Infantry*', 'Infantry continue to roll till the end of the ground combat', 'defender',undefined,'Ground','defender.units.Ground.upgraded'),
 	};
+
 	root.Agendas = {
 		articlesOfWar: new Option('Articles of War', 'All Mechs lose their printed abilities except Sustain Damage'),
 		publicizeSchematics: new Option('Publicize Weapon Schematics', 'War Suns don\'t sustain damage'),
@@ -193,18 +209,20 @@
 		letnevMunitionsFunding: new Option('Munitions Reserves/War Funding 1st round', 'Reroll dice during first space combat round'),
 		tekklarLegion: new Option('Tekklar Legion', '+1 in invasion combat. -1 to Sardakk if he\'s the opponent'),
 		argentStrikeWing: new Option('Strike Wing Ambuscade', 'One additional die for one unit during Space Cannon, Bombardment, or Anti-Fighter Barrage'),	
-		argentStrikeWingSpaceCannonA: new Option('Strike Wing Space CannonA', 'Use Strike Wind Ambuscade on your Space Cannon roll','attacker',undefined, undefined, 'attacker.argentStrikeWing', 'argentStrikeWingSpaceCannonA'),
-		argentStrikeWingSpaceCannonD: new Option('Strike Wing Space CannonD', 'Use Strike Wind Ambuscade on your Space Cannon roll','defender',undefined, undefined, 'defender.argentStrikeWing', 'argentStrikeWingSpaceCannonD'),
-		argentStrikeWingBarrageA: new Option('Strike Wing Anti-Fighter BarrageA', 'Use Strike Wind Ambuscade on your Anti-Fighter Barrage roll','attacker',undefined, undefined, 'attacker.argentStrikeWing', 'argentStrikeWingBarrageA'),	
+		argentStrikeWingSpaceCannonA: new Option('Strike Wing Space CannonA', 'Use Strike Wind Ambuscade on your Space Cannon roll','attacker',undefined, undefined, 'attacker.argentStrikeWing'),
+		argentStrikeWingSpaceCannonD: new Option('Strike Wing Space CannonD', 'Use Strike Wind Ambuscade on your Space Cannon roll','defender',undefined, undefined, 'defender.argentStrikeWing'),
+		argentStrikeWingBarrageA: new Option('Strike Wing Anti-Fighter BarrageA', 'Use Strike Wind Ambuscade on your Anti-Fighter Barrage roll','attacker',undefined, undefined, 'attacker.argentStrikeWing'),	
 		argentStrikeWingBarrageD: new Option('Strike Wing Anti-Fighter BarrageD', 'Use Strike Wind Ambuscade on your Anti-Fighter Barrage roll','defender',undefined, undefined, 'defender.argentStrikeWing'),
-		argentStrikeWingBombardmentA: new Option('Strike Wing Bombardment', 'Use Strike Wind Ambuscade on your Bombardment roll','attacker',undefined, undefined, 'attacker.argentStrikeWing', 'argentStrikeWingBarrageD'),
+		argentStrikeWingBombardmentA: new Option('Strike Wing Bombardment', 'Use Strike Wind Ambuscade on your Bombardment roll','attacker',undefined, undefined, 'attacker.argentStrikeWing'),
 		nomadCavalry: new Option('The Cavalry', 'Weakest non-fighter ship gains the Sustain Damage ability, Combat value, and Anti-Fighter Barrage value of the Nomad Flagship. Cannot be used against the Nomad'),
-		hasMemoriaIIA: new Option('Has Memoria II', 'The Nomad has Memoria II', 'attacker', undefined, undefined, 'attacker.nomadCavalry', 'hasMemoriaIIA'),
-		hasMemoriaIID: new Option('Has Memoria II', 'The Nomad has Memoria II','defender', undefined, undefined, 'defender.nomadCavalry', 'hasMemoriaIID'),
+		hasMemoriaIIA: new Option('Has Memoria II', 'The Nomad has Memoria II', 'attacker', undefined, undefined, 'attacker.nomadCavalry'),
+		hasMemoriaIID: new Option('Has Memoria II', 'The Nomad has Memoria II','defender', undefined, undefined, 'defender.nomadCavalry'),
+		greyfireMutagenOmega: new Option('Greyfire Mutagen Ω', 'Not against the Yin, replace one of your opponents infantry with one of your own if they have 2 ground forces'),
 	};
 
 	root.Miscellaneous = {
 		crownThalnosSafe: new Option('Crown of Thalnos Safely', 'Use the Crown of Thalnos to reroll misses only on units with multiple die that have already hit'),
+		crownThalnosC: new Option('Crown of Thalnos*', "Produce an additional hit when rolling a 10 for all rolls"),	
 		progenitor: new Option('The Progenitor', "Elysium with Titan's hero is in the system"),	
 		noBombardment: new Option('No Bombardment', 'Choose not to use Bombardment', 'attacker'),
 		nebula: new Option('In a Nebula', 'Defender receives +1 modifier for all ships', 'defender'),
@@ -224,10 +242,19 @@
 		solAgent: new Option('Sol Agent 1st Round', 'One additional die for one ground force during the first round of ground combat'),
 		titanAgent: new Option('Titan of Ul Agent', 'Cancel one hit'),
 		yinAgent: new Option('Yin Agent', 'This player gains 2 fighters on the first destruction of either one of their cruisers or destroyers'),
+		yinAgentOmega: new Option('Yin Agent Ω', 'This player gains 2 fighters or 2 infantry on destruction of a ship or ground force'),
+		nomadAgent: new Option('The Thundarian', 'If your opponent rolled more hits than expected and you rolled less, go back to the roll dice step'),
 	};
 	root.Heroes = {
 		Mentak: {
 			mentakHero: new Option('Mentak Hero', 'For every enemy ship destroyed, gain 1 of that ship type onto your side of the battle'),
+		},
+		Keleres : {
+			keleresHero: new Option('Keleres Hero', 'At the start of space combat, place your flagship and 2 cruisers'),
+			keleresHeroIA: new Option('2 Destroyers', 'Instead place your flagship and 2 destroyers', 'attacker', undefined, undefined, 'attacker.keleresHero'),
+			keleresHeroID: new Option('2 Destroyers', 'Instead place your flagship and 2 destroyers', 'defender', undefined, undefined, 'defender.keleresHero'),
+			keleresHeroIIA: new Option('Destroyer & Cruiser', 'Instead place your flagship, a destroyer, and a cruiser', 'attacker', undefined, undefined, 'attacker.keleresHero'),
+			keleresHeroIID: new Option('Destroyer & Cruiser', 'Instead place your flagship, a destroyer, and a cruiser', 'defender', undefined, undefined, 'defender.keleresHero'),
 		},
 	};
 	root.RaceSpecificTechnologies = {
@@ -237,39 +264,24 @@
 		},
 		Sardakk: {
 			valkyrieParticleWeave: new Option('Valkyrie Particle Weave', 'If opponent produces at least one hit in Ground combat, you produce one additional hit'),
+			valkyrieParticleWeaveC: new Option('Valkyrie Particle Weave*', 'If opponent produces at least one hit in combat, you produce one additional hit'),
 		},
 		NaazRokha: {
 			supercharger: new Option('Supercharger', '+1 dice modifier to all units during the first battle round'),
+			superchargerC: new Option('Supercharger*', 'Units without Sustain Damage can cancel hits; damaged ships -1 on rolls'),
 		},
 		Virus: {
 			nonEuclidean: new Option('Non-Euclidean Shielding', 'Sustain Damage absorbs 2 hits'),
 			valkyrieParticleWeave: new Option('Valkyrie Particle Weave', 'If opponent produces at least one hit in Ground combat, you produce one additional hit'),
+			valkyrieParticleWeaveC: new Option('Valkyrie Particle Weave*', 'If opponent produces at least one hit in combat, you produce one additional hit'),
 			supercharger: new Option('Supercharger', '+1 dice modifier to all units during the first battle round'),
+			superchargerC: new Option('Supercharger*', 'Units without Sustain Damage can cancel hits; damaged ships -1 on rolls'),
 			l4Disruptors: new Option('L4 Disruptors', 'During an Invasion units cannot use Space Cannon against you', 'attacker'),
+			bioplasmosisC: new Option('Bioplasmosis*', 'Your Mechs are treated as structures'),
 		},
-	};
-	root.displayableOptions = [
-		Object.getOwnPropertyNames(root.ActionCards).filter(function(item) { return item !== "riskDirectHit"}), 
-		Object.getOwnPropertyNames(root.Technologies), 
-		Object.getOwnPropertyNames(root.Agendas),
-		Object.getOwnPropertyNames(root.Promissory),
-		Object.getOwnPropertyNames(root.Miscellaneous),
-		Object.getOwnPropertyNames(root.Leaders),
-		];
-	root.startingTech = {
-		Arborec: ['magenDefenseOmega'],
-		Hacan: ['antimassDeflectors'],
-		JolNar: ['antimassDeflectors', 'plasmaScoring'],
-		L1Z1X: ['plasmaScoring'],
-		Letnev: ['antimassDeflectors'],
-		Mentak: ['plasmaScoring'],
-		Muaat: ['plasmaScoring'],
-		Virus: ['daxcive'],
-		Saar: ['antimassDeflectors'],
-		Sol: ['antimassDeflectors'],
-		Xxcha: ['gravitonLaser'],
-		Argent: ['plasmaScoring'],
-		Titans: ['antimassDeflectors'],
+		Arborec:{
+			bioplasmosisC: new Option('Bioplasmosis*', 'Your Mechs are treated as structures'),
+		},
 	};
 	root.VirusUpgrades = {
 		Virus :{
@@ -283,12 +295,14 @@
 			saturnEngineII: new Option('Saturn Engine II', "Nekro copied Titan's Saturn Engine II"),
 			helTitanII: new Option('Hel Titan II', "Nekro copied Titan's Hel Titan II"),
 			exotriremeII : new Option('Exotrireme II', "Nekro copied Sardakk's Exotrireme II"),
+			crimsonII : new Option('Crimson Legionnaire II', "Nekro copied Mahact's Crimson Legionnaire II"),
 		},
 	}
 	root.RacialSpecific = {
 		Letnev: {
-			munitions: new Option('Munitions Reserves Every Round', 'Use the Munitions Reserves Ability at the start of every round of space combat',undefined,undefined,'Space', undefined, 'munitions'),
-			dunlainMechs: new Option('Deploy Mechs Every Round', "Use the mech's DEPLOY ability to replace an infantry with a mech at the start of every round of ground combat",undefined,"Ground", 'Ground'),
+			munitions: new Option('Munitions Reserves Every Round', 'Use the Munitions Reserves Ability at the start of every round of space combat',undefined,undefined,'Space', undefined),
+			dunlainMechs: new Option('Deploy Mechs Every Round', "Use the mech's DEPLOY ability to replace an infantry with a mech at the start of every round of ground combat",undefined,undefined, 'Ground'),
+			dunlainMechsOnce: new Option('Deploy Mechs First Round', "Use the mech's DEPLOY ability to replace an infantry with a mech at the start of the first round of ground combat",undefined,undefined, 'Ground'),
 		},
 		Virus: {
 			opponentTech: new Option("Has Opponent's Faction Technonology", "Mechs apply +2 to the result of their combat rolls if Nekro has an 'X' or 'Y' token on 1 or more of the opponent's technologies",undefined,"Mech"),
@@ -305,9 +319,56 @@
 		Sardakk:{
 			sustainMechs: new Option("Sustain Only During Combat", "Only use Sustain Damage on your mechs when in combat", undefined,'Mech','Ground'),
 		},
+		Yin: {
+			indoctrinate: new Option("Use Indoctrination", "Use your Indoctrination Faction Ability to replace one of your opponent's infantry with one of your own at the start of ground combat", undefined,undefined,'Ground'),
+			//indoctrinateMechA: new Option("Indoctrinate Mech", "Instead replace their infantry with your mech", 'attacker',undefined,'Ground', 'attacker.indoctrinate'),
+			//indoctrinateMechOmegaA: new Option("Indoctrinate Mech*", "Instead replace their mech with your mech", 'attacker',undefined,'Ground', 'attacker.indoctrinate'),
+			//indoctrinateMechD: new Option("Indoctrinate Mech", "Instead replace their infantry with your mech", 'defender',undefined,'Ground', 'defender.indoctrinate'),
+			indoctrinateMechOmegaD: new Option("Indoctrinate Mech*", "Instead replace their mech with your mech", 'defender',undefined,'Ground', 'defender.indoctrinate'),
+		},
 	};
-
-	
+	root.NonSpecificOptions = [
+		root.ActionCards,
+		root.Technologies, 
+		root.Agendas,
+		root.Promissory,
+		root.Miscellaneous,
+		root.Leaders,
+	];
+	root.SpecificOptions = [
+		root.Heroes,
+		root.RaceSpecificTechnologies,
+		root.VirusUpgrades,
+		root.RacialSpecific
+	];
+	for (options in root.nonSpecificOptions){
+		for (option in root.nonSpecificOptions[options]){
+			root.nonSpecificOptions[options][option].pointer = option;
+		}
+	}
+	for (options in root.SpecificOptions){
+		for (race in root.SpecificOptions[options]){
+			for (option in root.SpecificOptions[options][race]){
+				root.SpecificOptions[options][race][option].pointer = option;
+			}
+		}
+	}
+	root.startingOptions = {
+		Arborec: ['magenDefenseC'],
+		Hacan: ['antimassDeflectors'],
+		JolNar: ['antimassDeflectors', 'plasmaScoringC', 'jolnarCommander'],
+		L1Z1X: ['plasmaScoringC', 'L1Z1XCommander'],
+		Letnev: ['antimassDeflectors', 'plasmaScoringC', 'letnevCommander'],
+		Mentak: ['plasmaScoringC'],
+		Muaat: ['plasmaScoringC'],
+		Virus: [],
+		Saar: ['antimassDeflectors'],
+		Sol: ['antimassDeflectors', 'solCommander'],
+		Xxcha: ['gravitonLaserC'],
+		Winnu: ['winnuCommander'],
+		Argent: ['plasmaScoringC', 'argentCommander'],
+		Titans: ['antimassDeflectors'],
+	};
 	root.UnitInfo = (function () {
 
 		function UnitInfo(type, stats) {
@@ -329,6 +390,7 @@
 			this.barrageDice = stats.barrageDice || 0;
 
 			this.sustainDamageHits = stats.sustainDamageHits || 0;
+			this.sustainDamage = stats.sustainDamage || false;
 			this.isDamageGhost = stats.isDamageGhost || false;
 
 			this.damageCorporeal = undefined;
@@ -351,8 +413,9 @@
 			this.typeGroundForce = stats.typeGroundForce || type === root.UnitType.Mech || type === root.UnitType.Ground;
 			this.typeStructure = stats.typeStructure || type === root.UnitType.PDS;
 			this.planetaryShield = stats.planetaryShield || type === root.UnitType.PDS;
-			this.importance = stats.importance || NaN;
+			this.importance = stats.importance || 0;
 			this.cancelHit = stats.cancelHit || false;
+			this.dead = stats.dead || false;
 		}
 
 		UnitInfo.prototype.clone = function () {
@@ -362,13 +425,14 @@
 		// Create damage ghost for damageable units 
 		UnitInfo.prototype.toDamageGhost = function () {
 			var result = new UnitInfo(this.type, {
-				sustainDamageHits: this.sustainDamageHits,
+				sustainDamageHits: 0,
 				battleDice: 0,
 				isDamageGhost: true,
 				typeShip: this.typeShip,
 				typeGroundForce: this.typeGroundForce,
 				typeStructure: this.typeStructure,
 				planetaryShield: this.planetaryShield,
+				sustainDamage: false,
 			});
 			// 'corporeal' as an antonym to 'ghost' =)
 			result.damageCorporeal = this;
@@ -407,6 +471,7 @@
 			bombardmentValue: 3,
 			bombardmentDice: 3,
 			cost: 12,
+			sustainDamage: true,
 		}),
 		Dreadnought: new root.UnitInfo(UnitType.Dreadnought, {
 			sustainDamageHits: 1,
@@ -414,6 +479,7 @@
 			bombardmentValue: 5,
 			bombardmentDice: 1,
 			cost: 4,
+			sustainDamage: true,
 		}),
 		Cruiser: new root.UnitInfo(UnitType.Cruiser, {
 			battleValue: 7,
@@ -445,6 +511,7 @@
 			sustainDamageHits: 1,
 			battleValue: 6,
 			cost: 2,
+			sustainDamage: true,
 		}),
 		ExperimentalBattlestation: new root.UnitInfo('Bloodthirsty Space Dock', {
 			spaceCannonValue: 5,
@@ -452,10 +519,17 @@
 		}),
 		GhostHit: new root.UnitInfo('Ghost Hit', {
 			battleDice: 0,
+			cost:0,
 		}),
 		TheProgenitor: new root.UnitInfo('The Progenitor', {
-			spaceCannonValue: 3,
+			spaceCannonValue: 5,
+			spaceCannonDice: 3,
+			cost:0,
+		}),
+		Planet: new root.UnitInfo(UnitType.Planet, {
+			spaceCannonValue: 4,
 			spaceCannonDice: 1,
+			cost:0,
 		}),
 	};
 
@@ -467,6 +541,7 @@
 				battleDice: 2,
 				race: root.Race.Sardakk,
 				cost: 8,
+				sustainDamage: true,
 			}),
 			Dreadnought: new root.UnitInfo(UnitType.Dreadnought, {
 				sustainDamageHits: 1,
@@ -474,6 +549,7 @@
 				bombardmentValue: 4,
 				bombardmentDice: 2,
 				cost: 4,
+				sustainDamage: true,
 			}),
 		},
 		JolNar: {
@@ -483,6 +559,7 @@
 				battleDice: 2,
 				race: root.Race.JolNar,
 				cost: 8,
+				sustainDamage: true,
 			}),
 		},
 		Winnu: {
@@ -492,6 +569,7 @@
 				battleDice: undefined,
 				race: root.Race.Winnu,
 				cost: 8,
+				sustainDamage: true,
 			}),
 		},
 		Xxcha: {
@@ -503,6 +581,7 @@
 				spaceCannonDice: 3,
 				race: root.Race.Xxcha,
 				cost: 8,
+				sustainDamage: true,
 			}),
 			Mech: new root.UnitInfo(UnitType.Mech, {
 				sustainDamageHits: 1,
@@ -510,6 +589,7 @@
 				spaceCannonValue: 8,
 				spaceCannonDice: 1,
 				cost: 2,
+				sustainDamage: true,
 			}),
 		},
 		Yin: {
@@ -519,6 +599,7 @@
 				battleDice: 2,
 				race: root.Race.Yin,
 				cost: 8,
+				sustainDamage: true,
 			}),
 		},
 		Yssaril: {
@@ -528,6 +609,7 @@
 				battleDice: 2,
 				race: root.Race.Yssaril,
 				cost: 8,
+				sustainDamage: true,
 			}),
 		},
 		Sol: {
@@ -537,6 +619,7 @@
 				battleDice: 2,
 				race: root.Race.Sol,
 				cost: 8,
+				sustainDamage: true,
 			}),
 			Ground: new root.UnitInfo(UnitType.Ground, {
 				battleValue: 7,
@@ -550,6 +633,7 @@
 				battleDice: 1,
 				race: root.Race.Creuss,
 				cost: 8,
+				sustainDamage: true,
 			}),
 		},
 		L1Z1X: {
@@ -559,6 +643,7 @@
 				battleDice: 2,
 				race: root.Race.L1Z1X,
 				cost: 8,
+				sustainDamage: true,
 			}),
 			Mech: new root.UnitInfo(UnitType.Mech, {
 				sustainDamageHits: 1,
@@ -566,6 +651,7 @@
 				bombardmentValue: 8,
 				bombardmentDice: 1,
 				cost: 2,
+				sustainDamage: true,
 			}),
 		},
 		Mentak: {
@@ -575,6 +661,7 @@
 				battleDice: 2,
 				race: root.Race.Mentak,
 				cost: 8,
+				sustainDamage: true,
 			}),
 		},
 		Naalu: {
@@ -584,6 +671,7 @@
 				battleDice: 2,
 				race: root.Race.Naalu,
 				cost: 8,
+				sustainDamage: true,
 			}),
 			Fighter: new root.UnitInfo(UnitType.Fighter, {
 				battleValue: 8,
@@ -597,6 +685,7 @@
 				battleDice: 2,
 				race: root.Race.Virus,
 				cost: 8,
+				sustainDamage: true,
 			}),
 		},
 		Arborec: {
@@ -606,12 +695,14 @@
 				battleDice: 2,
 				race: root.Race.Arborec,
 				cost: 8,
+				sustainDamage: true,
 			}),
 			Mech: new root.UnitInfo(UnitType.Mech, {
 				sustainDamageHits: 1,
 				battleValue: 6,
 				cost: 2,
 				planetaryShield: true,
+				sustainDamage: true,
 			}),
 		},
 		Letnev: {
@@ -623,6 +714,7 @@
 				bombardmentDice: 3,
 				race: root.Race.Letnev,
 				cost: 8,
+				sustainDamage: true,
 			}),
 		},
 		Saar: {
@@ -634,6 +726,7 @@
 				barrageDice: 4,
 				race: root.Race.Saar,
 				cost: 8,
+				sustainDamage: true,
 			}),
 		},
 		Muaat: {
@@ -643,6 +736,7 @@
 				battleDice: 2,
 				race: root.Race.Muaat,
 				cost: 8,
+				sustainDamage: true,
 			}),
 		},
 		Hacan: {
@@ -652,6 +746,7 @@
 				battleDice: 2,
 				race: root.Race.Hacan,
 				cost: 8,
+				sustainDamage: true,
 			}),
 		},
 		Argent: {
@@ -661,6 +756,7 @@
 				battleDice: 2,
 				race: root.Race.Argent,
 				cost: 8,
+				sustainDamage: true,
 			}),
 			Destroyer: new root.UnitInfo(UnitType.Destroyer, {
 				battleValue: 8,
@@ -676,6 +772,7 @@
 				battleDice: 2,
 				race: root.Race.Empyrean,
 				cost: 8,
+				sustainDamage: true,
 			}),
 		},
 		Mahact: {
@@ -685,6 +782,7 @@
 				battleDice: 2,
 				race: root.Race.Mahact,
 				cost: 8,
+				sustainDamage: true,
 			}),
 		},
 		NaazRokha: {
@@ -694,6 +792,7 @@
 				battleDice: 2,
 				race: root.Race.NaazRokha,
 				cost: 8,
+				sustainDamage: true,
 			}),
 			Mech: new root.UnitInfo(UnitType.Mech, {
 				sustainDamageHits: 1,
@@ -701,7 +800,7 @@
 				battleDice: 2,
 				importance: 1.6,
 				cost: 2,
-				typeShip: true,
+				sustainDamage: true,
 			}),
 		},
 		Nomad: {
@@ -713,6 +812,7 @@
 				barrageDice: 3,
 				race: root.Race.Nomad,
 				cost: 8,
+				sustainDamage: true,
 			}),
 		},
 		Titans: {
@@ -722,6 +822,7 @@
 				battleDice: 2,
 				race: root.Race.Titans,
 				cost: 8,
+				sustainDamage: true,
 			}),
 			Cruiser: new root.UnitInfo(UnitType.Cruiser, {
 				battleValue: 7,
@@ -734,6 +835,7 @@
 				spaceCannonDice: 1,
 				typeGroundForce: true,
 				importance: 2.5,
+				sustainDamage: true,
 			}), 
 		},
 		Cabal: {
@@ -745,6 +847,17 @@
 				bombardmentDice: 1,
 				race: root.Race.Cabal,
 				cost: 8,
+				sustainDamage: true,
+			}),
+		},
+		Keleres: {
+			Flagship: new root.UnitInfo(UnitType.Flagship, {
+				sustainDamageHits: 1,
+				battleValue: 7,
+				battleDice: 2,
+				race: root.Race.Keleres,
+				cost: 8,
+				sustainDamage: true,
 			}),
 		},
 	};
@@ -757,6 +870,7 @@
 			bombardmentValue: 5,
 			bombardmentDice: 1,
 			cost: 4,
+			sustainDamage: true,
 		}),
 		Cruiser: new root.UnitInfo(UnitType.Cruiser, {
 			battleValue: 6,
@@ -788,6 +902,7 @@
 				sustainDamageHits: 1,
 				battleValue: 9,
 				cost: 3,
+				sustainDamage: true,
 			}),
 			Ground: new root.UnitInfo(UnitType.Ground, {
 				battleValue: 6,
@@ -801,6 +916,7 @@
 				bombardmentValue: 4,
 				bombardmentDice: 1,
 				cost: 4,
+				sustainDamage: true,
 			}),
 		},
 		Naalu: {
@@ -817,6 +933,7 @@
 				bombardmentValue: 3,
 				bombardmentDice: 3,
 				cost: 10,
+				sustainDamage: true,
 			}),
 		},
 		Argent: {
@@ -836,6 +953,7 @@
 				barrageDice: 3,
 				race: root.Race.Nomad,
 				cost: 8,
+				sustainDamage: true,
 			}),
 		},
 		Titans: {
@@ -843,6 +961,7 @@
 				sustainDamageHits: 1,
 				battleValue: 6,
 				cost: 2,
+				sustainDamage: true,
 			}),
 			PDS: new root.UnitInfo(UnitType.PDS, {
 				sustainDamageHits: 1,
@@ -851,6 +970,7 @@
 				spaceCannonDice: 1,
 				typeGroundForce: true,
 				importance: 2.5,
+				sustainDamage: true,
 			}), 
 		},
 		Virus: {
@@ -862,6 +982,7 @@
 				barrageDice: 3,
 				race: root.Race.Nomad,
 				cost: 8,
+				sustainDamage: true,
 			}),
 			WarSun: new root.UnitInfo(UnitType.WarSun, {
 				sustainDamageHits: 1,
@@ -870,11 +991,13 @@
 				bombardmentValue: 3,
 				bombardmentDice: 3,
 				cost: 10,
+				sustainDamage: true,
 			}),
 			Carrier: new root.UnitInfo(UnitType.Carrier, {
 				sustainDamageHits: 1,
 				battleValue: 9,
 				cost: 3,
+				sustainDamage: true,
 			}),
 		},
 	};
@@ -885,7 +1008,103 @@
 		root.MergedUnits[race] = Object.assign({}, root.StandardUnits, root.RaceSpecificUnits[race]);
 		root.MergedUpgrades[race] = Object.assign({}, root.StandardUpgrades, root.RaceSpecificUpgrades[race]);
 	}
-	
+	root.restoreDamage = function(input,battleSide,fleet){
+		var options = input.options || { attacker: {}, defender: {} };
+		var thisSideOptions = options[battleSide];
+		for (var i = 0; i < fleet.length; i++) {
+			var unit = fleet[i];
+			if (unit.sustainDamageHits === 0 && unit.sustainDamage && !unit.damaged) {
+				unit.sustainDamageHits = 1;
+				var sustain=unit.toDamageGhost();
+				if (sustain.type === root.UnitType.Mech && thisSideOptions.race === root.Race.Nomad)
+					sustain.cancelHit=true;
+				fleet.push(sustain);
+			}
+		}
+	}
+
+	root.createUnit = function (input,battleSide, unitType, amount, fleet, ignoreDamage,properties){
+		var options = input.options || { attacker: {}, defender: {} };
+		var battleType = input.battleType;
+		var thisSideOptions = options[battleSide];
+		var opponentSide = root.BattleSide.opponent(battleSide);
+		var opponentSideOptions = options[opponentSide];
+		thisSideOptions.side = ''+ battleSide;
+		var opponentMentakFlagship = battleType === root.BattleType.Space && opponentSideOptions.race === root.Race.Mentak &&
+			(input[root.SideUnits[opponentSide]][UnitType.Flagship] || { count: 0 }).count !== 0;
+		var opponentMentakMech = battleType === root.BattleType.Ground && opponentSideOptions.race === root.Race.Mentak &&
+			(input[root.SideUnits[opponentSide]][UnitType.Mech] || { count: 0 }).count !== 0 && !opponentSideOptions.articlesOfWar;
+
+		var virusFlagship = battleType === root.BattleType.Space && thisSideOptions.race === root.Race.Virus &&
+			(input[root.SideUnits[battleSide]][UnitType.Flagship] || { count: 0 }).count !== 0 && !thisSideOptions.memoriaII;
+		var naaluFlagship = battleType === root.BattleType.Ground && thisSideOptions.race === root.Race.Naalu &&
+			(input[root.SideUnits[battleSide]][UnitType.Flagship] || { count: 0 }).count !== 0;
+
+		var oldStandardUnits = root.MergedUnits[thisSideOptions.race];
+		var oldUpgradedUnits = root.MergedUpgrades[thisSideOptions.race];
+
+		var thisSideCounters = input[root.SideUnits[battleSide]];
+		var standardUnits = Object.assign({},oldStandardUnits);
+		var upgradedUnits = Object.assign({},oldUpgradedUnits);
+		var counter=thisSideCounters[unitType];
+		if (counter === undefined)
+			counter = { count: 0 };
+		else if (typeof counter == 'number')
+			counter = { count: counter}
+		else if (counter.count === undefined)
+			counter.count = 0;
+		for (var i = 0; i < amount; i++) {
+			var unit = (counter.upgraded ? upgradedUnits : standardUnits)[unitType];
+			var addedUnit = unit.clone();
+			for(var idx in properties) 
+				addedUnit[idx] = properties[idx];
+			/*if (naaluFlagship && addedUnit.type === root.UnitType.Fighter && battleSide === 'attacker' && beforeStartOfCombat)
+				addedUnit.typeGroundForce=true;*/
+			/*if (virusFlagship && addedUnit.typeGroundForce && beforeStartOfCombat)
+				addedUnit.typeShip=true;*/
+			/*if ((thisSideOptions.articlesOfWar || battleType === root.BattleType.Ground) && addedUnit.type === root.UnitType.Mech && thisSideOptions.race === root.Race.NaazRokha)
+				addedUnit.typeShip=false;*/
+			if (thisSideOptions.bioplasmosisC && addedUnit.type === root.UnitType.Mech)
+				addedUnit.typeStructure=true;
+			if (thisSideOptions.articlesOfWar && addedUnit.type === root.UnitType.Mech && thisSideOptions.race === root.Race.Xxcha){
+				addedUnit.spaceCannonDice=0;
+				addedUnit.spaceCannonValue=null;
+			}
+			if (thisSideOptions.blitz && addedUnit.bombardmentDice === 0 && addedUnit.typeShip && addedUnit.type !== root.UnitType.Fighter){
+				addedUnit.bombardmentDice=1;
+				addedUnit.bombardmentValue=6;
+			}
+			if (opponentSideOptions.disable && addedUnit.type === root.UnitType.PDS){
+				addedUnit.spaceCannonDice=0;
+				addedUnit.planetaryShield=false;
+			}
+			// loses sustain damage
+			if ((unitType === UnitType.WarSun && thisSideOptions.publicizeSchematics)){
+				addedUnit.sustainDamageHits = 0;
+				addedUnit.sustainDamage=false;
+			}
+			//cannot use sustain damage
+			if ((addedUnit.typeGroundForce && opponentMentakMech && battleType === root.BattleType.Ground) || (addedUnit.typeShip && opponentMentakFlagship && battleType === root.BattleType.Space)){
+				addedUnit.sustainDamageHits = 0;
+			}
+			if (addedUnit.typeShip && battleType === root.BattleType.Space && thisSideOptions.superchargerC && addedUnit.type !== root.UnitType.Fighter && !addedUnit.sustainDamage){
+				addedUnit.sustainDamageHits = 1;
+			}
+			fleet.push(addedUnit);
+			if (addedUnit.sustainDamageHits > 0 && !addedUnit.damaged) {
+				if (i < counter.count - Math.max((counter.damaged || 0),(counter.participants || 0)) || ignoreDamage){
+					var sustain=addedUnit.toDamageGhost();
+					fleet.push(sustain);
+				}
+			}
+			if (i >= counter.count - Math.max((counter.damaged || 0),(counter.participants || 0)))
+				addedUnit.damaged = true;
+		}
+		
+		return;
+
+	}
+
 	// Make an array of units in their reversed order of dying 
 	root.expandFleet = function (input, battleSide) {
 		var options = input.options || { attacker: {}, defender: {} };
@@ -897,12 +1116,12 @@
 		var oldStandardUnits = root.MergedUnits[thisSideOptions.race];
 		var oldUpgradedUnits = root.MergedUpgrades[thisSideOptions.race];
 		var opponentMentakFlagship = battleType === root.BattleType.Space && opponentSideOptions.race === root.Race.Mentak &&
-			(input[root.SideUnits[opponentSide]][UnitType.Flagship] || { count: 0 }).count !== 0;
+			(input[root.SideUnits[opponentSide]][root.UnitType.Flagship] || { count: 0 }).count !== 0;
 		var opponentMentakMech = battleType === root.BattleType.Ground && opponentSideOptions.race === root.Race.Mentak &&
-			(input[root.SideUnits[opponentSide]][UnitType.Mech] || { count: 0 }).count !== 0 && !opponentSideOptions.articlesOfWar;
+			(input[root.SideUnits[opponentSide]][root.UnitType.Mech] || { count: 0 }).count !== 0 && !opponentSideOptions.articlesOfWar;
 
 		var virusFlagship = battleType === root.BattleType.Space && thisSideOptions.race === root.Race.Virus &&
-			(input[root.SideUnits[battleSide]][UnitType.Flagship] || { count: 0 }).count !== 0 && !thisSideOptions.memoriaII;
+			(input[root.SideUnits[battleSide]][root.UnitType.Flagship] || { count: 0 }).count !== 0 && !thisSideOptions.memoriaII;
 		var naaluFlagship = battleType === root.BattleType.Ground && thisSideOptions.race === root.Race.Naalu &&
 			(input[root.SideUnits[battleSide]][UnitType.Flagship] || { count: 0 }).count !== 0;
 		var result = [];
@@ -921,47 +1140,18 @@
 				}
 			}
 		}
-		for (var unitType in UnitType) {
-			var counter = thisSideCounters[unitType] || { count: 0 };
-			for (var i = 0; i < counter.count; i++) {
-				var unit = (counter.upgraded ? upgradedUnits : standardUnits)[unitType];
-				var addedUnit = unit.clone();
-				if (naaluFlagship && unit.type === root.UnitType.Fighter && battleSide === 'attacker')
-					addedUnit.typeGroundForce=true;
-				if (virusFlagship && unit.typeGroundForce)
-					addedUnit.typeShip=true;
-				if ((thisSideOptions.articlesOfWar || battleType === root.BattleType.Ground) && unit.type === root.UnitType.Mech && thisSideOptions.race === root.Race.NaazRokha)
-					addedUnit.typeShip=false;
-				if (thisSideOptions.articlesOfWar && unit.type === root.UnitType.Mech && thisSideOptions.race === root.Race.Xxcha){
-					addedUnit.spaceCannonDice=0;
-					addedUnit.spaceCannonValue=null;
-				}
-				if (thisSideOptions.blitz && addedUnit.bombardmentDice === 0 && unit.typeShip && addedUnit.type !== root.UnitType.Fighter){
-					addedUnit.bombardmentDice=1;
-					addedUnit.bombardmentValue=6;
-				}
-				if (opponentSideOptions.disable && unit.type === root.UnitType.PDS){
-					addedUnit.spaceCannonDice=0;
-					addedUnit.planetaryShield=false;
-				}
-				result.push(addedUnit);
-				if (unit.sustainDamageHits > 0 &&
-					!opponentMentakFlagship &&
-					!(unitType === UnitType.WarSun && thisSideOptions.publicizeSchematics) &&
-					!(unitType === UnitType.Mech && opponentMentakMech && battleType===root.BattleType.Ground) &&
-					!(unitType === UnitType.Mech && thisSideOptions.race===root.Race.NaazRokha && battleType===root.BattleType.Space)
-				) {
-					if (i < counter.count - Math.max((counter.damaged || 0),(counter.participants || 0))){
-						sustain=addedUnit.toDamageGhost()
-						if (sustain.type === root.UnitType.Mech && thisSideOptions.race === root.Race.Nomad)
-							sustain.cancelHit=true;
-						result.push(sustain);
-					}
-					else
-						addedUnit.damaged = true;
-				}
-
-			}
+		for (var unitType in root.UnitType) {
+			var counter=thisSideCounters[unitType];
+			if (counter === undefined)
+				counter = { count: 0 };
+			else if (typeof counter == 'number')
+				counter = { count: counter}
+			else if (counter.count === undefined)
+				counter.count = 0;
+			//var counter = thisSideCounters[unitType] || { count: 0 };
+			//var count = typeof thisSideCounters[unitType].count == 'number' ? thisSideCounters[unitType].count : (typeof thisSideCounters[unitType] == 'number' ? thisSideCounters[unitType] : 0);
+			//print(thisSideCounters);
+			root.createUnit(input,battleSide,unitType,counter.count, result, false);
 		}
 		if (thisSideOptions.titanAgent){
 			var ghostHit = root.StandardUnits.GhostHit;
@@ -969,21 +1159,24 @@
 			ghostHit.cancelHit=true;
 			result.push(ghostHit);
 		}
-		thisSideOptions.yinAgentUses= thisSideOptions.yinAgent ? 1 : 0 ;
-		thisSideOptions.reflectiveShieldingUses= thisSideOptions.reflectiveShielding ? 1 : 0 ;
-		thisSideOptions.directHitUses = battleSide === "attacker" ? thisSideOptions.directHit + thisSideOptions.directHit2A + thisSideOptions.directHit3A + thisSideOptions.directHit4A :
-										thisSideOptions.directHit + thisSideOptions.directHit2D + thisSideOptions.directHit3D + thisSideOptions.directHit4D;
 		thisSideOptions.hacanFlagship = battleType === root.BattleType.Space && thisSideOptions.race === root.Race.Hacan &&
 		(input[root.SideUnits[battleSide]][UnitType.Flagship] || { count: 0 }).count !== 0;
+
+		thisSideOptions.mentakMech = battleType === root.BattleType.Ground && thisSideOptions.race === root.Race.Mentak &&
+		(input[root.SideUnits[battleSide]][UnitType.Mech] || { count: 0 }).count !== 0;
+
+		thisSideOptions.mentakFlagship = battleType === root.BattleType.Space && thisSideOptions.race === root.Race.Mentak &&
+		(input[root.SideUnits[battleSide]][UnitType.Flagship] || { count: 0 }).count !== 0;
+
 		thisSideOptions.virusFlagship = virusFlagship;
-		if (thisSideOptions.race !== root.Race.Nomad && opponentSideOptions.race !== root.Race.Nomad && battleType === root.BattleType.Space){
+		/*if (thisSideOptions.race !== root.Race.Nomad && opponentSideOptions.race !== root.Race.Nomad && battleType === root.BattleType.Space){
 			
 			if (battleSide === "attacker" && options.attacker.nomadCavalry){
 				thisSideOptions.hasMemoriaIIA ? nomadPromissary(result,2) : nomadPromissary(result,1);
 			}
 			if (battleSide === "defender" && options.defender.nomadCavalry)
 				thisSideOptions.hasMemoriaIID ? nomadPromissary(result,2) : nomadPromissary(result,1);	
-		}
+		}*/
 		
 		var unitOrder = createUnitOrder(virusFlagship);
 		var naaluGoundUnitOrder = {};
@@ -1008,8 +1201,8 @@
 			result.push(root.StandardUnits.ExperimentalBattlestation);
 		if (thisSideOptions.progenitor)
 			result.push(root.StandardUnits.TheProgenitor);
-		//options[battleSide].units=result;
 		options[battleSide].battleType=''+battleType;
+		
 		
 		result.comparer = comparer;
 		result.filterForBattle = filterFleet;
@@ -1032,8 +1225,8 @@
 			return result;
 		}
 		function defaultComparer(unit1, unit2) {
-			var unitOrder1= isNaN(unit1.importance) ? unitOrder[unit1.type] : unit1.importance;
-			var unitOrder2=isNaN(unit2.importance) ? unitOrder[unit2.type] : unit2.importance;
+			var unitOrder1= unit1.importance==0 ? unitOrder[unit1.type] : unit1.importance;
+			var unitOrder2= unit2.importance==0 ? unitOrder[unit2.type] : unit2.importance;
 			var typeOrder = unitOrder1 - unitOrder2;
 			// damage ghosts come after corresponding units
 			var damageGhostOrder = (unit1.isDamageGhost ? 1 : 0) - (unit2.isDamageGhost? 1 : 0);
@@ -1064,7 +1257,6 @@
 				return typeOrder * 1000 + damageGhostOrder * 10 + damagedOrder;
 			}
 		}
-
 		function upgradedDreadnoughtsComparer(unit1, unit2) {
 			if (thisSideOptions.riskDirectHit) {
 				return defaultComparer(unit1, unit2);
@@ -1142,29 +1334,39 @@
 			}
 			return;
 		}
-		
-		function filterFleet() {
+		function filterFleet(reverse = false) {
 			var allowed = {};
 			for (var unitType in UnitType){
-				var counter = thisSideCounters[unitType] || { count: 0 };
+				var counter=thisSideCounters[unitType];
+				if (counter === undefined)
+					counter = { count: 0 };
+				else if (typeof counter == 'number')
+					counter = { count: counter}
+				else if (counter.count === undefined)
+					counter.count = 0;
 				var par = counter.count - (counter.participants || 0);
 				allowed[unitType]=par;
 			}
 			var result = this.filter(function (unit) {
 				allowed[unit.type] = unit.isDamageGhost ? allowed[unit.type] : allowed[unit.type]-1;
 				if (battleType === root.BattleType.Space)
-					return (unit.typeShip || (unit.type === UnitType.Mech && thisSideOptions.race === root.Race.Nomad && 
-						unit.isDamageGhost && !thisSideOptions.articlesOfWar)) && (allowed[unit.type]>=0 || unit.isDamageGhost);
+					return reverse^((unit.typeShip) && (allowed[unit.type]>=0 || unit.isDamageGhost));
 				else battleType === root.BattleType.Ground
-					return (unit.typeGroundForce) && (allowed[unit.type]>=0 || unit.isDamageGhost);
+					return reverse^((unit.typeGroundForce) && (allowed[unit.type]>=0 || unit.isDamageGhost));
 			});
 			result.comparer = this.comparer;
-			if (result.length >0 && thisSideOptions.titanAgent){
+			if (result.length > 0 && thisSideOptions.titanAgent){
 				var ghostHit = root.StandardUnits.GhostHit;
 				ghostHit.shortType='T',
 				result.push(ghostHit);
 			}
 			result.sort(this.comparer);
+			let arrayKeys = Object.keys(this);
+			for (let i = 0; i < arrayKeys.length; i++) {
+				if(isNaN(arrayKeys[i]) === true) {
+					result[arrayKeys[i]] = this[arrayKeys[i]];
+				}
+			}
 			return result;
 		}
 
@@ -1180,7 +1382,9 @@
 
 	root.damageable = function (race, unitType, upgraded, options) {
 		//console.trace();
-		return (upgraded ? root.MergedUpgrades : root.MergedUnits)[race][unitType].sustainDamageHits > 0  || (unitType === root.UnitType.Cruiser && options.saturnEngineII) || (unitType === root.UnitType.PDS && options.helTitanII);
+		return (upgraded ? root.MergedUpgrades : root.MergedUnits)[race][unitType].sustainDamageHits > 0  || 
+		(unitType === root.UnitType.Cruiser && options.saturnEngineII) || (unitType === root.UnitType.PDS && options.helTitanII) ||
+		((upgraded ? root.MergedUpgrades : root.MergedUnits)[race][unitType].typeShip && unitType !== root.UnitType.Fighter && options.superchargerC && options.battleType === "Space");
 	};
 
 	root.hasBombardment = function (race, unitType, upgraded, blitz) {
@@ -1189,3 +1393,7 @@
 	
 })(typeof exports === 'undefined' ? window : exports);
 //window.alert(5 + 6);
+function print(string) {
+	var result = string == null || string == undefined ? string : JSON.parse(JSON.stringify(string));
+	console.error(result);
+}

@@ -16,7 +16,7 @@
 	<link href="css/index_style.css" type="text/css" rel="stylesheet"/>
 	<link rel="shortcut icon" href="favicon.gif" type="image/x-icon"/>
 <!-- -->
-	<script type="text/javascript" src="js/jquery-3.3.1.slim.min.js">/*RGraph needs jQuery. I don't*/</script>
+	<script type="text/javascript" src="js/jquery-3.6.0.slim.min.js">/*RGraph needs jQuery. I don't*/</script>
 	<script type="text/javascript" src="js/vue.min.js"></script>
 	<script type="text/javascript" src="js/RGraph.min.js"></script>
 	<script type="text/javascript" src="structs.js"></script>
@@ -24,7 +24,6 @@
 	<script type="text/javascript" src="calculator.js"></script>
 	<script type="text/javascript" src="imitator.js"></script>
 	<script type="text/javascript" src="version.js"></script>
-
 </head>
 <body>
 <div id="root">
@@ -50,8 +49,10 @@
 	<div id="counters">
 		<div class="o-grid o-grid--no-gutter center-grid" v-for="(name, key) in UnitType"
 			 :class="{ 'attacker-participates': participates(BattleSide.attacker, name),
-						'defender-participates': participates(BattleSide.defender, name) }">
-			<div class="o-grid__cell counter c-input-group attacker">
+						'defender-participates': participates(BattleSide.defender, name), 
+						collapsed: key === 'Planet' && !options.attacker.magenDefenseC && !options.defender.magenDefenseC}">
+			<div class="o-grid__cell counter c-input-group attacker" 
+				:class="{ hidden: key === 'Planet' && !options.attacker.magenDefenseC}">
 				<select v-model="attackerUnits[key].participants" class="participants"
 						:class="{ hidden: !((key === 'Mech' && options.attacker.race === 'L1Z1X') || (key === 'Flagship' && options.attacker.race === 'Xxcha') || (key === 'PDS' && options.attacker.helTitanII && options.attacker.virusFlagship)) }"
 						title="Units not participating in combat">
@@ -86,7 +87,8 @@
 				</button>
 			</div>
 			<div class="unit-name"><span>{{displayName(name)}}</span></div>
-			<div class="o-grid__cell counter c-input-group defender">
+			<div class="o-grid__cell counter c-input-group defender"
+				:class="{ hidden: key === 'Planet' && !options.defender.magenDefenseC}">
 				<button type="button" class="c-button c-button--ghost-brand count-stepper" title="remove unit"
 						@click="decrement(defenderUnits[key])">-
 				</button>
@@ -181,7 +183,7 @@
 
 		<option-pair v-for="technology in technologies"
 					:option-name="technology.key" :option="technology.option" :pair="technology.pair" :options="options" :visible="(technology.key !== 'hasDock' && technology.key !== 'x89Conservative' && technology.key !== 'hasStructure' && technology.key !== 'plasmaScoringFirstRound') || 
-					(technology.key === 'plasmaScoringFirstRound' && options.attacker.race === 'L1Z1X' && options.attacker.plasmaScoring) || (technology.key === 'hasDock' && options.defender.magenDefenseOmega) || 
+					(technology.key === 'plasmaScoringFirstRound' && options.attacker.race === 'L1Z1X' && (options.attacker.plasmaScoring || options.attacker.plasmaScoringC)) || (technology.key === 'hasDock' && options.defender.magenDefenseOmega) || 
 					(technology.key === 'hasStructure' && options.attacker.magenDefenseOmega) || (technology.key === 'x89Conservative' && options.attacker.x89Omega)"></option-pair>
 					
 					<option-pair v-for="pair in raceTechnologies" :pair="pair" :options="options"></option-pair>
@@ -193,7 +195,9 @@
 						|| (action.key === 'directHit2D' && options.defender.directHit) || (action.key === 'directHit3D' && options.defender.directHit2D) || (action.key === 'directHit4D' && options.defender.directHit3D)"></option-pair>
 		<div class="heading"><strong>Leaders</strong></div>
 		<option-pair v-for="leader in leaders"
-						:option-name="leader.key" :option="leader.option" :pair="leader.pair" :options="options" :visible="(leader.key !== 'argentCommanderFirstRound') || (leader.key === 'argentCommanderFirstRound' && options.attacker.race === 'L1Z1X' && options.attacker.argentCommander)"></option-pair>
+						:option-name="leader.key" :option="leader.option" :pair="leader.pair" :options="options" :visible="(leader.key !== 'argentCommanderFirstRound' && leader.key !== 'keleresHeroIA' && leader.key !== 'keleresHeroIIA') 
+						|| (leader.key === 'argentCommanderFirstRound' && options.attacker.race === 'L1Z1X' && options.attacker.argentCommander)
+						|| (leader.key === 'keleresHeroIA' && options.attacker.keleresHero) || (leader.key === 'keleresHeroIIA' && options.attacker.keleresHero)"></option-pair>
 		<option-pair v-for="pair in heroes" :pair="pair" :options="options"></option-pair>
 		<div class="heading"><strong>Agendas / Promissory / Racial / Miscellaneous</strong></div>
 		<option-pair v-for="(option, key) in Agendas"

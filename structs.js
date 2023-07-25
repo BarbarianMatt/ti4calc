@@ -118,10 +118,12 @@
 		attackerVictims = attackerVictims.collapseRanges(fromRow);
 		defenderVictims = defenderVictims.collapseRanges(fromColumn);
 		var subproblemKey = this._subproblemKey(attackerVictims, defenderVictims);
-		if (!this.subproblems[subproblemKey])
+		if (!this.subproblems[subproblemKey]){
 			this.subproblems[subproblemKey] = this._problemFactory(attackerVictims, defenderVictims);
+		}
 		this.subproblems[subproblemKey].distribution[fromRow - attackerVictims.dead()][fromColumn - defenderVictims.dead()] += value;
 	};
+
 
 	root.EnsembleSplit.prototype.getSubproblems = function () {
 		var subproblems = this.subproblems;
@@ -130,15 +132,18 @@
 		});
 	};
 
+
 	root.EnsembleSplit.prototype._problemFactory = function (attackerVictims, defenderVictims) {
 		var attackerDeficit = attackerVictims.rangesLength();
 		var defenderDeficit = defenderVictims.rangesLength();
 		var distribution = root.createMatrix(this.parentProblem.distribution.rows - attackerDeficit, this.parentProblem.distribution.columns - defenderDeficit, 0);
-		var attacker = splice(this.parentProblem.attacker, attackerVictims.ranges);
-		var defender = splice(this.parentProblem.defender, defenderVictims.ranges);
+		var attacker = splice(this.parentProblem.attacker, attackerVictims);
+		var defender = splice(this.parentProblem.defender, defenderVictims);
 		return new root.Problem(distribution, attacker, defender);
 
-		function splice(fleet, ranges) {
+		function splice(fleet, victims) {
+			var ranges = victims.ranges;
+			var result = fleet.slice();
 			var allRangesNull = true;
 			for (var i = 0; i < ranges.length / 2; ++i) {
 				if (!isNaN(ranges[i * 2])) {
@@ -146,10 +151,10 @@
 					break;
 				}
 			}
-			if (allRangesNull)
-				return fleet;
+			if (allRangesNull){
+				return result;
+			}
 			else {
-				var result = fleet.slice();
 				for (var i = ranges.length / 2 - 1; 0 <= i; --i) {
 					if (!isNaN(ranges[i * 2])) {
 						result.splice(ranges[i * 2], (ranges[i * 2 + 1] - ranges[i * 2]) || 1);
@@ -160,8 +165,8 @@
 		}
 	};
 
-	root.EnsembleSplit.prototype._subproblemKey = function (attackerVictims, defenderVictimms) {
-		return 'a' + attackerVictims.rangesKey() + 'd' + defenderVictimms.rangesKey();
+	root.EnsembleSplit.prototype._subproblemKey = function (attackerVictims, defenderVictims) {
+		return 'a' + attackerVictims.rangesKey() + attackerVictims.dead() + 'd' + defenderVictims.rangesKey() + defenderVictims.dead();
 	};
 
 
@@ -212,15 +217,16 @@
 
 	root.Victim.prototype.collapseRanges = function (fleetCeiling) {
 		var ranges = this.ranges;
-		if (ranges.length && (
+		/*if (ranges.length && (
 				ranges[ranges.length - 1] === fleetCeiling ||
-				ranges[ranges.length - 1] === undefined && ranges[ranges.length - 2] + 1 === fleetCeiling)) {
+				ranges[ranges.length - 1] === undefined && ranges[ranges.length - 2] + 1 === fleetCeiling)) {*/
+		/*if (ranges.length && ranges[ranges.length - 1] === fleetCeiling){
 			var result;
 			result = new root.Victim();
 			result.ranges = ranges.slice(0, ranges.length - 2);
 			result._dead = this.rangesLength();
 			return result;
-		}
+		}*/
 		return this;
 	};
 
@@ -233,7 +239,10 @@
 	};
 
 	root.Victim.Null = new root.Victim();
-
+	function print(string) {
+		var result = string == null || string == undefined ? string : JSON.parse(JSON.stringify(string));
+		console.error(result);
+	}
 
 	/** taken from https://stackoverflow.com/questions/22697936/binary-search-in-javascript
 	 * God only knows why javascript doesn't have it's own binary search

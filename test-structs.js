@@ -1,4 +1,9 @@
-var structs = require('../structs');
+var structs;
+if (typeof require === 'function') {
+	structs = require('../structs');
+} else {
+	structs = window;
+}
 
 function rangesEqual(a, b) {
 	if (a === b) return true;

@@ -1,5 +1,5 @@
 (function () {
-
+	//console.trace();
 	window.CanvasSizes = [
 		{ width: 600, height: 400 },
 		{ width: 900, height: 600 },
@@ -47,11 +47,19 @@
 					this[SideUnits[side]][unitType].count = 0;
 					this[SideUnits[side]][unitType].upgraded = false;
 				}
-				for (var options in displayableOptions) {
-					for (var option in displayableOptions[options]){
-						//console.log(displayableOptions[options][option]);
-						//console.log(this.options[side]);
-						this.options[side][displayableOptions[options][option]] = false;
+				for (var options in NonSpecificOptions) {
+					for (var option in NonSpecificOptions[options]){
+						if (option !== "riskDirectHit")
+							this.options[side][option] = false;
+					}
+				}
+				console.log(this.options)
+				for (var options in SpecificOptions) {
+					for (var race in SpecificOptions[options]){
+						for (var option in SpecificOptions[options][race]){
+							
+							this.options[side][option] = false;
+						}
 					}
 				}
 			},
@@ -61,11 +69,9 @@
 				var self = this;
 
 				persistInput();
-
 				// veeery poor man's background processing
 				setTimeout(function () {
 					// unfortunately some game aspects are hard to handle in the calculator
-
 					var duraniumArmor = self.options.attacker.duraniumArmor || self.options.defender.duraniumArmor;
 					var l1z1xFlagship = (self.options.attacker.race === Race.L1Z1X && self.attackerUnits.Flagship.count !== 0 ||
 						self.options.defender.race === Race.L1Z1X && self.defenderUnits.Flagship.count !== 0) && self.battleType === BattleType.Space;
@@ -73,24 +79,32 @@
 						self.options.defender.race === Race.Letnev && self.defenderUnits.Flagship.count !== 0) && self.battleType === BattleType.Space;
 					// I could not figure out how to have it so that when sardakk's mechs sustain damage in the normal calculator, only then would they produce a hit, may be possible but IDK
 
-					var sardakkMech = (self.options.attacker.race === Race.Sardakk && self.attackerUnits.Mech.count !== 0 ||
+					var sardakkMechVsMech = (self.options.attacker.race === Race.Sardakk && self.attackerUnits.Mech.count !== 0 &&
 						self.options.defender.race === Race.Sardakk && self.defenderUnits.Mech.count !== 0) && self.battleType === BattleType.Ground && !self.options.attacker.articlesOfWar;
+					var sardakkMechVsNonEuclidean = ((self.options.attacker.race === Race.Sardakk && self.attackerUnits.Mech.count !== 0 && self.options.defender.nonEuclidean) || 
+						(self.options.defender.race === Race.Sardakk && self.defenderUnits.Mech.count !== 0 && self.options.attacker.nonEuclidean)) && self.battleType === BattleType.Ground && !self.options.attacker.articlesOfWar;
 					//var sardakkMech = false;
 					// Same reason as Sardakk Mechs
-					var reflective = (self.options.attacker.reflectiveShielding || self.options.defender.reflectiveShielding) && self.battleType === BattleType.Space;
-				
-					var l1z1xX89Omega = (self.options.attacker.race === Race.L1Z1X && self.options.attacker.x89);
+					//var reflective = (self.options.attacker.reflectiveShielding || self.options.defender.reflectiveShielding) && self.battleType === BattleType.Space;
+					var reflectiveVsReflective = (self.options.attacker.reflectiveShielding && self.options.defender.reflectiveShielding) && self.battleType === BattleType.Space;
+					var reflectiveVsNonEuclidean = ((self.options.attacker.reflectiveShielding && self.options.defender.nonEuclidean) || 
+						(self.options.defender.reflectiveShielding)) && self.battleType === BattleType.Space;
+					var l1z1xX89Omega = (self.options.attacker.race === Race.L1Z1X && self.options.attacker.x89Omega);
 					var mentakH = (self.options.attacker.mentakHero || self.options.defender.mentakHero) && self.battleType === BattleType.Space;
-					var yinA = (self.options.attacker.yinAgent || self.options.defender.yinAgent) && self.battleType === BattleType.Space;
-					var directHit = (self.options.attacker.directHit || self.options.defender.directHit) && self.battleType === BattleType.Space;
+					var yinA = (self.options.attacker.yinAgent || self.options.defender.yinAgent || self.options.attacker.yinAgentOmega || self.options.defender.yinAgentOmega)
+					var directHit = (self.options.attacker.directHit || self.options.attacker.directHit2A || self.options.attacker.directHit3A || self.options.attacker.directHit4A ||
+									self.options.defender.directHit || self.options.defender.directHit2D || self.options.defender.directHit3D || self.options.defender.directHit4D) && self.battleType === BattleType.Space;
 					var valkyrieAndNonEuclidean = ((self.options.attacker.valkyrieParticleWeave && self.options.defender.nonEuclidean) || (self.options.defender.valkyrieParticleWeave && self.options.attacker.nonEuclidean)) && 
 						self.battleType === BattleType.Ground;
-					var dunlainMechs = (self.options.attacker.dunlainMechs || self.options.defender.dunlainMechs) && self.battleType === BattleType.Ground;
-					var daxcive = self.options.attacker.daxcive;
-					if ((duraniumArmor || l1z1xFlagship || letnevFlagship || sardakkMech || reflective || l1z1xX89Omega || mentakH || yinA  || directHit || valkyrieAndNonEuclidean || dunlainMechs || /*solCommander ||*/ daxcive) || self.forceSlow){
-						[lastComputed, self.storedValues] = imitator.estimateProbabilities(self);
+					var valkyrieVsValkyrie = ((self.options.attacker.valkyrieParticleWeave || self.options.attacker.valkyrieParticleWeaveC) && (self.options.defender.valkyrieParticleWeave || self.options.defender.valkyrieParticleWeaveC))
+					var dunlainMechs = ((self.options.attacker.dunlainMechs && self.attackerUnits.Ground.count > 1) || (self.options.defender.dunlainMechs && self.defenderUnits.Ground.count > 1)) && self.battleType === BattleType.Ground;
+					var nomadA = (self.options.attacker.nomadAgent || self.options.defender.nomadAgent);
+					var betterSustains = (self.options.attacker.nonEuclidean && !self.options.attacker.riskDirectHit) || (self.options.defender.nonEuclidean && !self.options.defender.riskDirectHit);
+					//var superchargerC = self.options.attacker.superchargerC || self.options.defender.superchargerC;
+					if ((duraniumArmor || l1z1xFlagship || letnevFlagship || sardakkMechVsMech || sardakkMechVsNonEuclidean || reflectiveVsReflective || reflectiveVsNonEuclidean || l1z1xX89Omega || mentakH || yinA  || directHit || valkyrieAndNonEuclidean || valkyrieVsValkyrie || dunlainMechs || nomadA || betterSustains) || self.forceSlow){
+						lastComputed= imitator.estimateProbabilities(self);
 					} else {
-						[lastComputed, self.storedValues] = calculator.computeProbabilities(self);
+						lastComputed = calculator.computeProbabilities(self);
 					}
 					self.displayDistribution(lastComputed);
 
@@ -236,6 +250,8 @@
 						return this.battleType === BattleType.Ground || this.options[battleSide].race === Race.NaazRokha || (this.options[battleSide].race === Race.Virus && this[SideUnits[battleSide]].Flagship.count !== 0);
 					case UnitType.PDS:
 						return this.battleType === BattleType.Space || battleSide === BattleSide.defender;
+					case UnitType.Planet:
+						return this.battleType === BattleType.Space || battleSide === BattleSide.defender;
 				}
 			},
 			damageableCount: function (count) {
@@ -261,24 +277,50 @@
 				this.options.attacker.articlesOfWar = value;
 			},
 			'options.defender.magenDefense': function (value) {
-				if (value)
+				if (value){
 					this.options.defender.magenDefenseOmega = false;
+					this.options.defender.magenDefenseC = false;
+				}
 			},
 			'options.defender.magenDefenseOmega': function (value) {
-				if (value)
+				if (value){
 					this.options.defender.magenDefense = false;
+					this.options.defender.magenDefenseC = false;
+				}
 				else
 					this.options.defender.hasDock = false;
 			},
+			'options.defender.magenDefenseC': function (value) {
+				if (value){
+					this.options.defender.magenDefenseOmega = false;
+					this.options.defender.magenDefense = false;
+				}
+				else {
+					this.defenderUnits.Planet.count = 0;
+				}
+			},
 			'options.attacker.magenDefense': function (value) {
-				if (value)
+				if (value){
 					this.options.attacker.magenDefenseOmega = false;
+					this.options.attacker.magenDefenseC = false;
+				}
 			},
 			'options.attacker.magenDefenseOmega': function (value) {
-				if (value)
+				if (value){
 					this.options.attacker.magenDefense = false;
+					this.options.attacker.magenDefenseC = false;
+				}
 				else
 					this.options.attacker.hasStructure = false;
+			},
+			'options.attacker.magenDefenseC': function (value) {
+				if (value){
+					this.options.attacker.magenDefenseOmega = false;
+					this.options.attacker.magenDefense = false;
+				}
+				else {
+					this.attackerUnits.Planet.count = 0;
+				}
 			},
 			'options.attacker.x89Omega': function (value) {
 				if (!value)
@@ -302,6 +344,32 @@
 			'options.defender.nomadCavalry': function (value) {
 				if (!value)
 					this.options.attacker.hasMemoriaIID = false;
+			},
+			'options.attacker.keleresHero': function (value) {
+				if (!value)
+					this.options.attacker.keleresHeroIA = false;
+					this.options.attacker.keleresHeroIIA = false;
+			},
+			'options.attacker.keleresHeroIA': function (value) {
+				if (value)
+					this.options.attacker.keleresHeroIIA = false;
+			},
+			'options.attacker.keleresHeroIIA': function (value) {
+				if (value)
+					this.options.attacker.keleresHeroIA = false;
+			},
+			'options.defender.keleresHero': function (value) {
+				if (!value)
+					this.options.defender.keleresHeroID = false;
+					this.options.defender.keleresHeroIID = false;
+			},
+			'options.defender.keleresHeroID': function (value) {
+				if (value)
+					this.options.defender.keleresHeroIID = false;
+			},
+			'options.defender.keleresHeroIID': function (value) {
+				if (value)
+					this.options.defender.keleresHeroID = false;
 			},
 			'options.attacker.directHit': function (value) {
 				if (!value)
@@ -327,13 +395,77 @@
 				if (!value)
 					this.options.defender.directHit4D = false;
 			},
-			'options.attacker.plasmaScoring': function (value) {
-				if (!value)
-					this.options.attacker.plasmaScoringFirstRound = false;
-			},
 			'options.attacker.argentCommander': function (value) {
 				if (!value)
 					this.options.attacker.argentCommanderFirstRound = false;
+			},
+			'options.attacker.indoctrinateMechOmegaA' : function(value){
+				if (value)
+					this.options.attacker.indoctrinateMechA = false;
+			},
+			'options.attacker.indoctrinateMechA' : function(value){
+				if (value)
+					this.options.attacker.indoctrinateMechOmegaA = false;
+			},
+			'options.defender.indoctrinateMechD' : function(value){
+				if (value)
+					this.options.defender.indoctrinateMechOmegaD = false;
+			},
+			'options.defender.indoctrinateMechOmegaD' : function(value){
+				if (value)
+					this.options.defender.indoctrinateMechD = false;
+			},
+			'options.attacker.yinAgent' : function(value){
+				if (value)
+					this.options.attacker.yinAgentOmega = false;
+			},
+			'options.attacker.yinAgentOmega' : function(value){
+				if (value)
+					this.options.attacker.yinAgent = false;
+			},
+			'options.defender.yinAgent' : function(value){
+				if (value)
+					this.options.defender.yinAgentOmega = false;
+			},
+			'options.defender.yinAgentOmega' : function(value){
+				if (value)
+					this.options.defender.yinAgent = false;
+			},
+			'options.attacker.plasmaScoring' : function(value){
+				if (value)
+					this.options.attacker.plasmaScoringC = false;
+				if (!value)
+					this.options.attacker.plasmaScoringFirstRound = false;
+			},
+			'options.attacker.plasmaScoringC' : function(value){
+				if (value)
+					this.options.attacker.plasmaScoring = false;
+				if (!value)
+					this.options.attacker.plasmaScoringFirstRound = false;
+			},
+			'options.defender.plasmaScoring' : function(value){
+				if (value)
+					this.options.defender.plasmaScoringC = false;
+			},
+			'options.defender.plasmaScoringC' : function(value){
+				if (value)
+					this.options.defender.plasmaScoring = false;
+			},
+			'options.attacker.crownThalnosSafe' : function(value){
+				if (value)
+					this.options.attacker.crownThalnosC = false;
+			},
+			'options.attacker.crownThalnosC' : function(value){
+				if (value)
+					this.options.attacker.crownThalnosSafe = false;
+			},
+			'options.defender.crownThalnosSafe' : function(value){
+				if (value)
+					this.options.defender.crownThalnosC = false;
+			},
+			'options.defender.crownThalnosC' : function(value){
+				if (value)
+					this.options.defender.crownThalnosSafe = false;
 			},
 			'attackerUnits.Flagship.upgraded' : function(value) {
 				if (!value)
@@ -341,6 +473,7 @@
 				else
 					this.options.attacker.memoriaII = true;
 			},
+			
 			'attackerUnits.WarSun.upgraded' : function(value) {
 				if (!value)
 					this.options.attacker.protoWarSunII = false;
@@ -361,6 +494,14 @@
 				if (value)
 					this.options.attacker.superDreadnoughtII = false;
 			},
+			'options.attacker.specOpsII': function (value) {
+				if (value)
+					this.options.attacker.crimsonII = false;
+			},
+			'options.attacker.crimsonII': function (value) {
+				if (value)
+					this.options.attacker.specOpsII = false;
+			},
 			'attackerUnits.Cruiser.upgraded' : function(value) {
 				if (!value)
 					this.options.attacker.saturnEngineII = false;
@@ -368,8 +509,6 @@
 			'attackerUnits.Carrier.upgraded' : function(value) {
 				if (!value)
 					this.options.attacker.advancedCarrierII = false;
-				else 
-					this.options.attacker.advancedCarrierII = true;
 			},
 			'attackerUnits.Destroyer.upgraded' : function(value) {
 				if (!value)
@@ -380,8 +519,11 @@
 					this.options.attacker.crystalFighterII = false;
 			},
 			'attackerUnits.Ground.upgraded' : function(value) {
-				if (!value)
+				if (!value){
 					this.options.attacker.specOpsII = false;
+					this.options.attacker.crimsonII = false;
+					this.options.attacker.infantryIIA = false;
+				}
 			},
 			'attackerUnits.PDS.upgraded' : function(value) {
 				if (!value)
@@ -395,10 +537,7 @@
 				if (!value)
 					this.attackerUnits.WarSun.upgraded = false;
 			},
-			'options.attacker.advancedCarrierII': function (value) {
-				if (!value)
-					this.attackerUnits.Carrier.upgraded = false;
-			},
+
 			'defenderUnits.Flagship.upgraded' : function(value) {
 				if (!value)
 					this.options.defender.memoriaII = false;
@@ -425,6 +564,14 @@
 				if (value)
 					this.options.defender.superDreadnoughtII = false;
 			},
+			'options.defender.crimsonII': function (value) {
+				if (value)
+					this.options.defender.specOpsII = false;
+			},
+			'options.defender.specOpsII': function (value) {
+				if (value)
+					this.options.defender.crimsonII = false;
+			},
 			'defenderUnits.Cruiser.upgraded' : function(value) {
 				if (!value)
 					this.options.defender.saturnEngineII = false;
@@ -432,8 +579,6 @@
 			'defenderUnits.Carrier.upgraded' : function(value) {
 				if (!value)
 					this.options.defender.advancedCarrierII = false;
-				else 
-					this.options.defender.advancedCarrierII = true;
 			},
 			'defenderUnits.Destroyer.upgraded' : function(value) {
 				if (!value)
@@ -444,8 +589,11 @@
 					this.options.defender.crystalFighterII = false;
 			},
 			'defenderUnits.Ground.upgraded' : function(value) {
-				if (!value)
+				if (!value){
 					this.options.defender.specOpsII = false;
+					this.options.defender.crimsonII = false;
+					this.options.defender.infantryIID = false;
+				}
 			},
 			'defenderUnits.PDS.upgraded' : function(value) {
 				if (!value)
@@ -458,13 +606,47 @@
 			'options.defender.protoWarSunII': function (value) {
 				if (!value)
 					this.defenderUnits.WarSun.upgraded = false;
+			},		
+			'options.attacker.battleType': function (value) {
+				if (value === 'Ground')
+					this.defenderUnits.Planet.count = Math.min(1,this.defenderUnits.Planet.count);
 			},
-			'options.defender.advancedCarrierII': function (value) {
-				if (!value)
-					this.defenderUnits.Carrier.upgraded = false;
+			'defenderUnits.Planet.count' : function(value) {
+				if (value>1 && this.battleType === 'Ground')
+					this.defenderUnits.Planet.count = Math.min(1,this.defenderUnits.Planet.count);
 			},
-			
-			
+			'options.attacker.supercharger': function (value) {
+				if (value)
+					this.options.attacker.superchargerC = false;
+			},
+			'options.defender.supercharger': function (value) {
+				if (value)
+					this.options.defender.superchargerC = false;
+			},
+			'options.attacker.superchargerC': function (value) {
+				if (value)
+					this.options.attacker.supercharger = false;
+			},
+			'options.defender.superchargerC': function (value) {
+				if (value)
+					this.options.defender.supercharger = false;
+			},
+			'options.attacker.valkyrieParticleWeave': function (value) {
+				if (value)
+					this.options.attacker.valkyrieParticleWeaveC = false;
+			},
+			'options.defender.valkyrieParticleWeave': function (value) {
+				if (value)
+					this.options.defender.valkyrieParticleWeaveC = false;
+			},
+			'options.attacker.valkyrieParticleWeaveC': function (value) {
+				if (value)
+					this.options.attacker.valkyrieParticleWeave = false;
+			},
+			'options.defender.valkyrieParticleWeaveC': function (value) {
+				if (value)
+					this.options.defender.valkyrieParticleWeave = false;
+			},
 			battleType: recomputeHandler,
 			attackerUnits: updateDamageableCountAndRecomputeHandler('attacker'),
 			defenderUnits: updateDamageableCountAndRecomputeHandler('defender'),
@@ -614,6 +796,7 @@
 					defenderTech = {...defenderTech, ...(this.defenderUnits.Destroyer.upgraded ? {strikeWingII : VirusUpgrades[this.options.defender.race].strikeWingII} : {})};
 					defenderTech = {...defenderTech, ...(this.defenderUnits.Fighter.upgraded ? {crystalFighterII : VirusUpgrades[this.options.defender.race].crystalFighterII} : {})};
 					defenderTech = {...defenderTech, ...(this.defenderUnits.Ground.upgraded ? {specOpsII : VirusUpgrades[this.options.defender.race].specOpsII} : {})};
+					defenderTech = {...defenderTech, ...(this.defenderUnits.Ground.upgraded ? {crimsonII : VirusUpgrades[this.options.defender.race].crimsonII} : {})};
 					defenderTech = {...defenderTech, ...(this.defenderUnits.PDS.upgraded ? {helTitanII : VirusUpgrades[this.options.defender.race].helTitanII} : {})};
 				}
 				if (this.options.attacker.race === Race.Virus){
@@ -625,6 +808,7 @@
 					attackerTech = {...attackerTech, ...(this.attackerUnits.Destroyer.upgraded ? {strikeWingII : VirusUpgrades[this.options.attacker.race].strikeWingII} : {})};
 					attackerTech = {...attackerTech, ...(this.attackerUnits.Fighter.upgraded ? {crystalFighterII : VirusUpgrades[this.options.attacker.race].crystalFighterII} : {})};
 					attackerTech = {...attackerTech, ...(this.attackerUnits.Ground.upgraded ? {specOpsII : VirusUpgrades[this.options.attacker.race].specOpsII} : {})};
+					attackerTech = {...attackerTech, ...(this.attackerUnits.Ground.upgraded ? {crimsonII : VirusUpgrades[this.options.attacker.race].crimsonII} : {})};
 					attackerTech = {...attackerTech, ...(this.attackerUnits.PDS.upgraded ? {helTitanII : VirusUpgrades[this.options.attacker.race].helTitanII} : {})};
 				}
 				for (var tech in defenderTech){
@@ -667,7 +851,48 @@
 					};
 				}
 			},
-			heroes: function () {
+			heroes: function() {
+				var result = [];
+				var modHeroes = Object.assign({}, Heroes[this.options.attacker.race], Heroes[this.options.defender.race]);
+				var techKeys = Object.keys(modHeroes);
+				for (var i = 0; i < techKeys.length; ++i){
+					var tech = modHeroes[techKeys[i]];
+					if ((tech.availableFor("attacker", this.options.attacker.units, this.options.attacker.battleType,this.options) && tech.limitedToSide === 'attacker') && 
+						(i + 1 < techKeys.length) && 
+						(modHeroes[techKeys[i+1]].availableFor("defender", this.options.defender.units, this.options.defender.battleType, this.options) && modHeroes[techKeys[i+1]].limitedToSide === 'defender')){
+						// special collapsing of Ω techs into one row
+						result.push({
+							
+							[BattleSide.attacker]: {
+								key: techKeys[i],
+								option: modHeroes[techKeys[i]],
+							},
+							[BattleSide.defender]: {
+								key: techKeys[i + 1],
+								option: modHeroes[techKeys[i + 1]],
+							}
+						});
+						i++;
+					} else {
+						if (tech.availableFor("attacker", this.options.attacker.units, this.options.attacker.battleType,this.options) || tech.availableFor("defender", this.options.defender.units, this.options.defender.battleType,this.options)){
+							result.push({
+								
+									attacker: {
+										key: techKeys[i],
+										option: tech,
+									},
+									defender : {
+										key: techKeys[i],
+										option: tech,
+									}
+								
+							});
+						}
+					}
+				}
+				return result;
+			},
+			/*heroes: function () {
 				var attackerOption = Heroes[this.options.attacker.race] || {};
 				var defenderOption = Heroes[this.options.defender.race] || {};
 				var attackerOptionKeys = Object.keys(attackerOption);
@@ -699,7 +924,7 @@
 							}
 					};
 				}
-			},
+			},*/
 			raceOptions: function () {
 				var attackerOption = Object.assign({}, RacialSpecific[this.options.attacker.race] || {});
 				var defenderOption = Object.assign({},RacialSpecific[this.options.defender.race] || {});
@@ -772,7 +997,6 @@
 						}
 					}
 				}
-
 				return result;
 			},
 			canvasWidth: function () {
@@ -866,12 +1090,28 @@
 					this.options[battleSide][option] = false;
 				}
 			}
-			for (var num in startingTech[newRace]){
-				var tech= startingTech[newRace][num];
+			for (var num in startingOptions[newRace]){
+				var tech= startingOptions[newRace][num];
 				this.options[battleSide][tech] = true;
 			}
 		};
 	}
+
+	function debounce(func, wait, immediate) {
+	var timeout;
+	return function() {
+		var context = this, args = arguments;
+		var later = function() {
+			timeout = null;
+			if (!immediate) func.apply(context, args);
+		};
+		var callNow = immediate && !timeout;
+		console.log(callNow);
+		clearTimeout(timeout);
+		timeout = setTimeout(later, wait);
+		if (callNow) func.apply(context, args);
+	};
+};
 
 	function updateDamageableCountAndRecomputeHandler(battleSide) {
 		return {
