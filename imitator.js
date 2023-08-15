@@ -759,25 +759,39 @@
 				{
 					name: 'Keleres Argent Hero',
 					appliesTo: game.BattleType.Space,
-					condition: function (problem, thisSideFull, otherSideFull, thisSide,otherSide, options, input) {
-						return options[thisSide].keleresHero;
-					},
-					execute: function (problem, thisSideFull, otherSideFull, thisSide,otherSide, options, input) {
-						addUnitBasedOnRace(game.UnitType.Flaship,mySide,myFleet,true,input);
-						if ((thisSide === 'attacker' && options[thisSide].keleresHeroIA) || (thisSide === 'defender' && options[thisSide].keleresHeroID)){
-							
-							addUnitBasedOnRace(game.UnitType.Destroyer,mySide,myFleet,true,input);
-							addUnitBasedOnRace(game.UnitType.Destroyer,mySide,myFleet,true,input);
+					execute: function (attacker, defender, attackerFull, defenderFull, options, input) {
+						if (options.attacker.keleresHero){
+							addUnitBasedOnRace(game.UnitType.Flaship,'attacker',attacker,true,input);
+							if (options.attacker.keleresHeroIA){
+								addUnitBasedOnRace(game.UnitType.Destroyer,'attacker',attacker,true,input);
+								addUnitBasedOnRace(game.UnitType.Destroyer,'attacker',attacker,true,input);
+							}
+							else if (options.attacker.keleresHeroIIA){
+								addUnitBasedOnRace(game.UnitType.Destroyer,'attacker',attacker,true,input);
+								addUnitBasedOnRace(game.UnitType.Cruiser,'attacker',attacker,true,input);
+							}
+							else {
+								addUnitBasedOnRace(game.UnitType.Cruiser,'attacker',attacker,true,input);
+								addUnitBasedOnRace(game.UnitType.Cruiser,'attacker',attacker,true,input);
+							}
 						}
-						else if ((thisSide === 'attacker' && options[thisSide].keleresHeroIIA) || (thisSide === 'defender' && options[thisSide].keleresHeroIID)){
-							addUnitBasedOnRace(game.UnitType.Destroyer,mySide,myFleet,true,input);
-							addUnitBasedOnRace(game.UnitType.Cruiser,mySide,myFleet,true,input);
+						if (options.defender.keleresHero){
+							addUnitBasedOnRace(game.UnitType.Flaship,'defender',defender,true,input);
+							if (options.defender.keleresHeroIA){
+								addUnitBasedOnRace(game.UnitType.Destroyer,'defender',defender,true,input);
+								addUnitBasedOnRace(game.UnitType.Destroyer,'defender',defender,true,input);
+							}
+							else if (options.defender.keleresHeroIIA){
+								addUnitBasedOnRace(game.UnitType.Destroyer,'defender',defender,true,input);
+								addUnitBasedOnRace(game.UnitType.Cruiser,'defender',defender,true,input);
+							}
+							else {
+								addUnitBasedOnRace(game.UnitType.Cruiser,'defender',defender,true,input);
+								addUnitBasedOnRace(game.UnitType.Cruiser,'defender',defender,true,input);
+							}
 						}
-						else {
-							addUnitBasedOnRace(game.UnitType.Cruiser,mySide,myFleet,true,input);
-							addUnitBasedOnRace(game.UnitType.Cruiser,mySide,myFleet,true,input);
-						}
-						organizeFleet(myFleet,mySide,options,input);
+						organizeFleet(attacker,'attacker',options,input);
+						organizeFleet(defender,'defender',options,input);
 						
 					},
 				},
