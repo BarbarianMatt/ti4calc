@@ -1057,6 +1057,28 @@
 	 * to the race not having such upgrade, input flag for the unit upgrade should be set to false */
 	function resetUpdatesAndTechnologies(battleSide) {
 		return function (newRace, oldRace) {
+			// clear now included
+
+			for (var unitType in UnitType) {
+				this[SideUnits[battleSide]][unitType].count = 0;
+				this[SideUnits[battleSide]][unitType].upgraded = false;
+			}
+			for (var options in NonSpecificOptions) {
+				for (var option in NonSpecificOptions[options]){
+					if (option !== "riskDirectHit")
+						this.options[battleSide][option] = false;
+				}
+			}
+			console.log(this.options)
+			for (var options in SpecificOptions) {
+				for (var race in SpecificOptions[options]){
+					for (var option in SpecificOptions[options][race]){
+						
+						this.options[battleSide][option] = false;
+					}
+				}
+			}
+			
 			for (var unitType in UnitType) {
 				var counter = this[SideUnits[battleSide]][unitType];
 				if (!upgradeable(newRace, unitType)) {
@@ -1094,6 +1116,7 @@
 				var tech= startingOptions[newRace][num];
 				this.options[battleSide][tech] = true;
 			}
+			
 		};
 	}
 

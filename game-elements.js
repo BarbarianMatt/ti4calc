@@ -187,7 +187,7 @@
 		plasmaScoringFirstRound: new Option('Plasma Scoring Not Used Initially', "Plasma Scoring isn't used in the initial Bombardment", 'attacker'),
 		magenDefense: new Option('Magen Defense Grid', 'Opponent doesn\'t throw dice for one round if you have Planetary Shield'),
 		magenDefenseOmega: new Option('Magen Defense Grid Ω', '1 hit at the start of ground combat when having structures'),
-		magenDefenseC: new Option('Magen Defense Grid*', 'Planets with structures have Space Cannon 4'),
+		magenDefenseC: new Option('Magen Defense Grid*', 'Planets with structures have Space Cannon 3 that cannot roll additional die'),
 		//hasStructure: new Option('Has Structure', 'Attacker has a structure on the planet somehow for Magen Defence Grid Ω', 'attacker'), // not a technology itself, but it's nice to show it close to Magen Defence Grid Ω
 		hasDock: new Option('Has Dock', 'Defender has a dock for Magen Defence Grid Ω', 'defender'), // not a technology itself, but it's nice to show it close to Magen Defence Grid Ω
 		duraniumArmor: new Option('Duranium Armor', 'After each round repair 1 unit that wasn\'t damaged this round'),
@@ -527,7 +527,7 @@
 			cost:0,
 		}),
 		Planet: new root.UnitInfo(UnitType.Planet, {
-			spaceCannonValue: 4,
+			spaceCannonValue: 3,
 			spaceCannonDice: 1,
 			cost:0,
 		}),

@@ -54,96 +54,92 @@
 			//initially all the probability mass is concentrated at both fleets being unharmed
 
 			//apply all pre-battle actions, like PDS fire and Barrage
-			var actions = prebattleActions;
-			/*if (options.attacker.race === game.Race.Mentak) {
-				actions = prebattleActions.slice();
-				var t = actions[1];
-				actions[1] = actions[2];
-				actions[2] = t;
-				if (actions[1].name !== 'Mentak racial' ||
-					actions[2].name !== 'Assault Cannon')
-					throw new Error('unexpected pre-battle actions order');
-			}*/
+
+			//needs major rewriting
+			var actions=prebattleActions;
 			var distribution = structs.createMatrix(attacker.length + 1, defender.length + 1, 0);
 			distribution[attacker.length][defender.length] = 1;
 			var start= new structs.Problem(distribution, attacker, defender);
-			start.actionsAttacker=[];
-			start.actionsDefender=[];
-			start.passes=0;
-			start.next='attacker';
-			start.startOfCombatUnitsA=attacker.length>0;
-			start.startOfCombatUnitsD=defender.length>0;
+			start.last_action_attacker={name:null};
+			start.last_action_defender={name:null};
+			start.passed_attacker=false;
+			start.passed_defender=false;
+			start.next_to_act='attacker';
+			start.other_side='defender';
+			start.completed_actions_attacker=[];
+			start.completed_actions_defender=[];
+			start.start_of_combat_units_both_sides=false;
 			var unresolvedProblems=[start];
 			var resolvedProblems=[];
-			var b=0
-			while (unresolvedProblems.length>0 && b<10){
-				b+=1;
-				var temp=[];
-				for (var i = 0; i < unresolvedProblems.length; i++){
-					var issue=unresolvedProblems[i];
-					var act=false;
-					if (issue.next === 'attacker'){
-						for (var j = 0; j < actions.length && !act; j++){
-							var action = actions[j];
-							var condition = (typeof action.condition === 'function' ? action.condition(issue, attackerFull, defenderFull, 'attacker','defender', options, input) : true) && issue.startOfCombatUnitsA && issue.startOfCombatUnitsD;
-							if (action.appliesTo === battleType && condition && !issue.actionsAttacker.some(element => { if (element === action.name) { return true;} return false; })){
-								var l=action.execute(issue, attackerFull, defenderFull, 'attacker','defender', options, input);
-								act=true;
-								var tempProblem;
-								for (var k = 0; k < l.length; k++){
-									tempProblem=l[k];
-									tempProblem.passes=0;
-									tempProblem.actionsAttacker=JSON.parse(JSON.stringify(issue.actionsAttacker));
-									tempProblem.actionsAttacker.push(action.name);
-									tempProblem.actionsDefender=JSON.parse(JSON.stringify(issue.actionsDefender));
-									tempProblem.next='defender';
-									tempProblem.startOfCombatUnitsD=!((action.name === 'Space Cannon -> Ships' || action.name === 'Space Cannon -> Ground Forces') && tempProblem.defender.length===0);
-									tempProblem.startOfCombatUnitsA=issue.startOfCombatUnitsA;
-									temp.push(tempProblem);
-								}
-							} 
-						}
-						if (!act){
-							issue.passes+=1;
-							issue.next='defender';
-						}
+			var iterations=0
+			while (unresolvedProblems.length!==0 && iterations<50){
+				var current_problem=unresolvedProblems[0];
+				var mySide=current_problem.next_to_act;
+				var otherSide=current_problem.other_side;
+				var action=findNextAction(current_problem);
+				if (action === null){
+					current_problem['passed_'+mySide]=true;
+					current_problem.next_to_act=otherSide;
+					current_problem.other_side=mySide;
+				} else {
+					print(action);
+					print(mySide);
+					var subproblems=action.execute(current_problem, mySide === 'attacker' ? attackerFull : defenderFull, mySide === 'attacker' ? defenderFull : attackerFull, mySide,otherSide, options, input);
+					if (true)
+						print(subproblems);
+					for (var k = 0; k < subproblems.length; k++){
+						var sub=subproblems[k];
+						for (let property of ['last_action_attacker','last_action_defender','passed_attacker','passed_defender','completed_actions_attacker','completed_actions_defender','start_of_combat_units_both_sides']) {
+							if (current_problem.hasOwnProperty(property)) {
+								sub[property] = JSON.parse(JSON.stringify(current_problem[property]));
+							}
+						}	
+						sub['completed_actions_' + mySide].push(action.name);
+						sub['last_action_' + mySide]=action;
+						sub['passed_'+mySide]=false;
+						current_problem['passed_'+mySide]=false;
+						sub.next_to_act=otherSide;
+						sub.other_side=mySide;
+						if (action.name === 'Space Cannon -> Ships' || action.name === 'Space Cannon -> Ground Forces')
+							sub.start_of_combat_units_both_sides = sub.attacker.length>0 && sub.defender.length>0;
+						unresolvedProblems.push(sub);
 					}
-					else {
-						for (var j = 0; j < actions.length && !act; j++){
-							var action = actions[j];
-							var condition = (typeof action.condition === 'function' ? action.condition(issue, defenderFull, attackerFull, 'defender', 'attacker', options, input) : true) && issue.startOfCombatUnitsA && issue.startOfCombatUnitsD;
-							if (action.appliesTo === battleType && condition && !issue.actionsDefender.some(element => { if (element === action.name) { return true;} return false; })){
-								var l=action.execute(issue, defenderFull, attackerFull, 'defender', 'attacker', options, input);
-								act=true;
-								var tempProblem;
-								for (var k = 0; k < l.length; k++){
-									tempProblem=l[k];
-									tempProblem.passes=0;
-									tempProblem.actionsDefender= JSON.parse(JSON.stringify(issue.actionsDefender));
-									tempProblem.actionsDefender.push(action.name);
-									tempProblem.actionsAttacker=JSON.parse(JSON.stringify(issue.actionsAttacker));
-									tempProblem.next='attacker';
-									tempProblem.startOfCombatUnitsA=!((action.name === 'Space Cannon -> Ships' || action.name === 'Space Cannon -> Ground Forces') && tempProblem.attacker.length===0);
-									tempProblem.startOfCombatUnitsD=issue.startOfCombatUnitsD;
-									temp.push(tempProblem);
-								}
-							} 
-						}
-						if (!act){
-							issue.passes+=1;
-							issue.next='attacker';
-						}
-					}
-					if (!act){
-						if (issue.passes<2)
-							temp.push(issue);
-						else
-							resolvedProblems.push(issue);
-					}
+					unresolvedProblems.shift();
 				}
-				unresolvedProblems=temp;
+				
+				if (current_problem.passed_attacker && current_problem.passed_defender && mySide === 'attacker'){
+					resolvedProblems.push(current_problem);
+					unresolvedProblems.shift()
+				}
+				iterations+=1;
+				//print("iterations " + iterations);
 			}
+
 			problemArray=resolvedProblems;
+
+			function findNextAction(issue){
+				for (var j = 0; j < actions.length; j++){
+					var ac = actions[j];
+					// general condition of the action
+					var condition1 = (typeof ac.condition === 'function' ? ac.condition(issue, mySide === 'attacker' ? attackerFull : defenderFull, mySide === 'attacker' ? defenderFull : attackerFull, mySide,otherSide, options, input) : true)
+					// action must apply to battleType
+					var condition2 = ac.appliesTo === battleType;
+					var stops=['Space Cannon -> Ships','Anti-Fighter Barrage','Nomad Space Mechs','Bombardment','Space Cannon -> Ground Forces'];
+					// if the action is a stop action, it can only be done if the defender has passed or if the last action was the same action, in order to ensure they are done at the same time
+					var condition3= !stops.includes(ac.name) || (mySide==='attacker' && (issue.passed_defender) || (mySide==='defender' && issue.last_action_attacker.name === ac.name));
+					// if an action is a start of combat action, it can only be performed after space cannon and before anti-fighter barrage
+					var condition4= stops.includes(ac.name) || ((battleType === game.BattleType.Space && issue['completed_actions_'+mySide].includes('Nomad Space Mechs') && !issue['completed_actions_'+mySide].includes('Anti-Fighter Barrage')) 
+					|| (battleType === game.BattleType.Ground && issue['completed_actions_'+mySide].includes('Space Cannon -> Ground Forces')));
+					// if an action is a start of combat action, it can only be performed if both sides had units at the start of combat, therefore initiating combat
+					var condition5 = (stops.includes(ac.name) && ac.name !== 'Nomad Space Mechs') || issue.start_of_combat_units_both_sides;
+					// an action cannot be performed by the same side multiple times
+					var condition6 = !issue['completed_actions_'+mySide].includes(ac.name);
+					if (condition1 && condition2 && condition3 && condition4 && condition5 && condition6)
+						return ac;
+				}
+				return null;
+			}
+			
 			
 			// the most interesting part - actually compute outcome probabilities
 			attackerTG[1] += options.attacker.race === game.Race.Letnev && options.attacker.letnevMunitionsFunding && !options.attacker.munitions ? 2 * input.storedValues.rounds : 0;
@@ -783,7 +779,7 @@
 					appliesTo: game.BattleType.Space,
 					execute: function (problem, thisSideFull, otherSideFull, thisSide,otherSide, options, input) {
 						var result = [];
-						var thisTransitionVector = getSpaceCannonTransitionsVector(thisSideFull, otherSideFull, options[thisSide], options[otherSide])
+						var thisTransitionVector = getSpaceCannonTransitionsVector(thisSideFull, otherSideFull, options[thisSide], options[otherSide]);
 						var otherTransitionVector = [1];
 
 						var ensemble = new structs.EnsembleSplit(problem);
@@ -880,99 +876,16 @@
 					},
 				},
 				{
-					name: 'Nekro Flagship',
-					appliesTo: game.BattleType.Space,
-					condition: function (problem, thisSideFull, otherSideFull, thisSide,otherSide, options, input) {
-						return problem[thisSide].some(unitIs(game.UnitType.Flagship)) && thisSideFull.some(groundForce) && options[thisSide].race === game.Race.Virus;
-					},
-					execute: function (problem, thisSideFull, otherSideFull, thisSide,otherSide, options, input) {
-						for (var i = 0; i<thisSideFull.length;i++){
-							var unit = thisSideFull[i];
-							if (unit.typeGroundForce && !unit.isDamageGhost){
-								addUnit(problem,thisSide, otherSide,thisSideFull, input, unit.type, 1, problem[thisSide], false, {typeShip: true});		
-							}
-						}
-						return [problem];
-					},
-				},
-				{
-					name: 'Nomad Promissory',
-					appliesTo: game.BattleType.Space,
-					condition: function (problem, thisSideFull, otherSideFull, thisSide,otherSide, options, input) {
-						return options[thisSide].nomadCavalry && problem[thisSide].some(notFighterShipNorGhost);
-					},
-					execute: function (problem, thisSideFull, otherSideFull, thisSide,otherSide, options, input) {
-						var prefered = [game.UnitType.Fighter, game.UnitType.Warsun, game.UnitType.Flagship, game.UnitType.Dreadnought, game.UnitType.Mech, game.UnitType.Cruiser, game.UnitType.Ground, game.UnitType.Destroyer, game.UnitType.Carrier];
-						var convertUnit=problem[thisSide][problem[thisSide].length-1];
-						var convertUnitIndex=problem[thisSide].length-1;
-						for (var i = problem[thisSide].length-1; i>=0;i--){
-							var unit = problem[thisSide][i];
-							if (prefered.indexOf(unit.type)>prefered.indexOf(convertUnit.type)){
-								convertUnit=fleet[i];
-								convertUnitIndex=i;
-							}
-						}
-						var v = new structs.Victim();
-						v.addRange(convertUnitIndex, undefined);
-						if (convertUnit.damageCorporeal)
-							v.addRange(problem[thisSide].indexOf(convertUnit.damageCorporeal), undefined);
-						var inherit = 	(thisSide === 'attacker' && options[thisSide].hasMemoriaIIA) || (thisSide === 'defender' && options[thisSide].hasMemoriaIID) ? 
-										{...convertUnit, sustainDamage: true,sustainDamageHits:1, barrageDice:3, barrageValue:5, battleDice:2, battleValue:5} :
-										{...convertUnit, sustainDamage: true,sustainDamageHits:1, barrageDice:3, barrageValue:8, battleDice:2, battleValue:7}
-
-						var p = removeUnit(problem,thisSide,convertUnit.type,options,v);
-						addUnit(p,thisSide, otherSide,thisSideFull, input, convertUnit.type, 1, p[thisSide], true, inherit);
-						print(p);
-						return [p];
-						
-					},
-				},
-				{
-					name: 'Naaz-Rokha Space Mechs',
-					appliesTo: game.BattleType.Space,
-					condition: function (problem, thisSideFull, otherSideFull, thisSide,otherSide, options, input) {
-						return thisSideFull.some(unitIs(game.UnitType.Mech)) && options[thisSide].race === game.Race.NaazRokha && !options[thisSide].articlesOfWar;
-					},
-					execute: function (problem, thisSideFull, otherSideFull, thisSide,otherSide, options, input) {
-						for (var i = 0; i<thisSideFull.length;i++){
-							var unit = thisSideFull[i];
-							if (unit.type === game.UnitType.Mech && !unit.isDamageGhost)
-								addUnit(problem,thisSide, otherSide,thisSideFull, input, game.UnitType.Mech, 1, problem[thisSide], false, {...unit, typeShip: true, sustainDamage:false,sustainDamageHits:0, battleValue:8});		
-						}
-						return [problem];
-					},
-				},
-				{
 					name: 'Nomad Space Mechs',
 					appliesTo: game.BattleType.Space,
-					condition: function (problem, thisSideFull, otherSideFull, thisSide,otherSide, options, input) {
-						return thisSideFull.some(unitIs(game.UnitType.Mech)) && options[thisSide].race === game.Race.Nomad && !options[thisSide].articlesOfWar;
-					},
 					execute: function (problem, thisSideFull, otherSideFull, thisSide,otherSide, options, input) {
+						if (!thisSideFull.some(unitIs(game.UnitType.Mech)) || options[thisSide].race !== game.Race.Nomad || options[thisSide].articlesOfWar)
+							return [problem];
 						for (var i = 0; i<thisSideFull.length;i++){
 							var unit = thisSideFull[i];
 							if (unit.type === game.UnitType.Mech && unit.isDamageGhost)
 								addUnit(problem,thisSide, otherSide,thisSideFull, input, game.UnitType.Mech, 1, problem[thisSide], false, {...unit, cancelHit:true});		
 						}
-						return [problem];
-					},
-				},
-				{
-					name: 'Keleres Argent Hero',
-					appliesTo: game.BattleType.Space,
-					condition: function (problem, thisSideFull, otherSideFull, thisSide,otherSide, options, input) {
-						return options[thisSide].keleresHero;
-					},
-					execute: function (problem, thisSideFull, otherSideFull, thisSide,otherSide, options, input) {
-						addUnit(problem,thisSide, otherSide,thisSideFull, input, game.UnitType.Flagship, 1, problem[thisSide], true);
-						if ((thisSide === 'attacker' && options[thisSide].keleresHeroIA) || (thisSide === 'defender' && options[thisSide].keleresHeroID))
-							addUnit(problem,thisSide, otherSide,thisSideFull, input, game.UnitType.Destroyer, 2, problem[thisSide], true);
-						else if ((thisSide === 'attacker' && options[thisSide].keleresHeroIIA) || (thisSide === 'defender' && options[thisSide].keleresHeroIID)){
-							addUnit(problem,thisSide, otherSide,thisSideFull, input, game.UnitType.Destroyer, 1, problem[thisSide], true);
-							addUnit(problem,thisSide, otherSide,thisSideFull, input, game.UnitType.Cruiser, 1, problem[thisSide], true);
-						}
-						else
-							addUnit(problem,thisSide, otherSide,thisSideFull, input, game.UnitType.Cruiser, 2, problem[thisSide], true);
 						return [problem];
 					},
 				},
@@ -1055,6 +968,90 @@
 					
 				},
 				{
+					name: 'Nekro Flagship',
+					appliesTo: game.BattleType.Space,
+					condition: function (problem, thisSideFull, otherSideFull, thisSide,otherSide, options, input) {
+						return problem[thisSide].some(unitIs(game.UnitType.Flagship)) && thisSideFull.some(groundForce) && options[thisSide].race === game.Race.Virus;
+					},
+					execute: function (problem, thisSideFull, otherSideFull, thisSide,otherSide, options, input) {
+						for (var i = 0; i<thisSideFull.length;i++){
+							var unit = thisSideFull[i];
+							if (unit.typeGroundForce && !unit.isDamageGhost){
+								addUnit(problem,thisSide, otherSide,thisSideFull, input, unit.type, 1, problem[thisSide], false, {typeShip: true});		
+							}
+						}
+						return [problem];
+					},
+				},
+				{
+					name: 'Nomad Promissory',
+					appliesTo: game.BattleType.Space,
+					condition: function (problem, thisSideFull, otherSideFull, thisSide,otherSide, options, input) {
+						return options[thisSide].nomadCavalry && options[otherSide].race!==game.Race.Nomad && options[thisSide].race!==game.Race.Nomad;//problem[thisSide].some(notFighterShipNorGhost(true));
+					},
+					execute: function (problem, thisSideFull, otherSideFull, thisSide,otherSide, options, input) {
+						var prefered = [game.UnitType.Warsun, game.UnitType.Flagship, game.UnitType.Dreadnought, game.UnitType.Mech, game.UnitType.Cruiser, game.UnitType.Ground, game.UnitType.Destroyer, game.UnitType.Carrier];
+						var convertUnit=problem[thisSide][problem[thisSide].length-1];
+						var convertUnitIndex=problem[thisSide].length-1;
+						for (var i = problem[thisSide].length-1; i>=0;i--){
+							var unit = problem[thisSide][i];
+							if (prefered.indexOf(unit.type)>prefered.indexOf(convertUnit.type)){
+								convertUnit=fleet[i];
+								convertUnitIndex=i;
+							}
+						}
+						if (convertUnit === undefined || convertUnit.type === game.UnitType.Fighter)
+							return [problem];
+						var v = new structs.Victim();
+						v.addRange(convertUnitIndex, undefined);
+						if (convertUnit.damageCorporeal)
+							v.addRange(problem[thisSide].indexOf(convertUnit.damageCorporeal), undefined);
+						var inherit = 	(thisSide === 'attacker' && options[thisSide].hasMemoriaIIA) || (thisSide === 'defender' && options[thisSide].hasMemoriaIID) ? 
+										{...convertUnit, sustainDamage: true,sustainDamageHits:1, barrageDice:3, barrageValue:5, battleDice:2, battleValue:5} :
+										{...convertUnit, sustainDamage: true,sustainDamageHits:1, barrageDice:3, barrageValue:8, battleDice:2, battleValue:7}
+
+						var p = removeUnit(problem,thisSide,convertUnit.type,options,v);
+						addUnit(p,thisSide, otherSide,thisSideFull, input, convertUnit.type, 1, p[thisSide], true, inherit);
+						return [p];
+						
+					},
+				},
+				{
+					name: 'Naaz-Rokha Space Mechs',
+					appliesTo: game.BattleType.Space,
+					condition: function (problem, thisSideFull, otherSideFull, thisSide,otherSide, options, input) {
+						return thisSideFull.some(unitIs(game.UnitType.Mech)) && options[thisSide].race === game.Race.NaazRokha && !options[thisSide].articlesOfWar;
+					},
+					execute: function (problem, thisSideFull, otherSideFull, thisSide,otherSide, options, input) {
+						for (var i = 0; i<thisSideFull.length;i++){
+							var unit = thisSideFull[i];
+							if (unit.type === game.UnitType.Mech && !unit.isDamageGhost)
+								addUnit(problem,thisSide, otherSide,thisSideFull, input, game.UnitType.Mech, 1, problem[thisSide], false, {...unit, typeShip: true, sustainDamage:false,sustainDamageHits:0, battleValue:8});		
+						}
+						return [problem];
+					},
+				},
+				{
+					name: 'Keleres Argent Hero',
+					appliesTo: game.BattleType.Space,
+					condition: function (problem, thisSideFull, otherSideFull, thisSide,otherSide, options, input) {
+						return options[thisSide].keleresHero;
+					},
+					execute: function (problem, thisSideFull, otherSideFull, thisSide,otherSide, options, input) {
+						addUnit(problem,thisSide, otherSide,thisSideFull, input, game.UnitType.Flagship, 1, problem[thisSide], true);
+						if ((thisSide === 'attacker' && options[thisSide].keleresHeroIA) || (thisSide === 'defender' && options[thisSide].keleresHeroID))
+							addUnit(problem,thisSide, otherSide,thisSideFull, input, game.UnitType.Destroyer, 2, problem[thisSide], true);
+						else if ((thisSide === 'attacker' && options[thisSide].keleresHeroIIA) || (thisSide === 'defender' && options[thisSide].keleresHeroIID)){
+							addUnit(problem,thisSide, otherSide,thisSideFull, input, game.UnitType.Destroyer, 1, problem[thisSide], true);
+							addUnit(problem,thisSide, otherSide,thisSideFull, input, game.UnitType.Cruiser, 1, problem[thisSide], true);
+						}
+						else
+							addUnit(problem,thisSide, otherSide,thisSideFull, input, game.UnitType.Cruiser, 2, problem[thisSide], true);
+						return [problem];
+					},
+				},
+				
+				{
 					name: 'Mentak racial',
 					appliesTo: game.BattleType.Space,
 					condition: function (problem, thisSideFull, otherSideFull, thisSide,otherSide, options, input) {
@@ -1093,7 +1090,7 @@
 					appliesTo: game.BattleType.Space,
 					execute: function (problem, thisSideFull, otherSideFull, thisSide,otherSide, options, input) {
 						var result = [];
-						var thisTransitionVector = getBarrageTransitionsVector(thisSideFull, otherSideFull, options[thisSide], options[otherSide])
+						var thisTransitionVector = getBarrageTransitionsVector(problem[thisSide], otherSideFull, options[thisSide], options[otherSide])
 						var otherTransitionVector = [1];
 
 						var ensemble = new structs.EnsembleSplit(problem);
@@ -2252,9 +2249,14 @@
 				return notFighterShip(combat)(unit) && !unit.isDamageGhost;
 			}
 		}
+		function ship(combat){
+			return function (unit) {
+				return unit.typeShip && validUnit(combat)(unit);
+			}
+		}
 		function notFighterShip(combat){
 			return function (unit) {
-				return unit.type !== game.UnitType.Fighter &&  unit.typeShip && validUnit(combat)(unit);
+				return unit.type !== game.UnitType.Fighter && unit.typeShip && validUnit(combat)(unit);
 			}
 		}
 		function validUnit(combat) {
