@@ -2,4 +2,4 @@ This is a Battle Calculator for the game Twilight Imperium 4th Edition. Its purp
 
 https://slimyjared86.github.io/ti4calc/
 
-Credit goes out to the alphamouse, whose calculator I significantly altered at http://alphamou.se/ti4calc/.
+Credit goes out to the alphamouse, whose calculator I significantly altered at [http://alphamou.se/ti4calc/](https://github.com/alpha-mouse/ti4calc). 
