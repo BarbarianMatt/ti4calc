@@ -82,11 +82,7 @@
 					current_problem.next_to_act=otherSide;
 					current_problem.other_side=mySide;
 				} else {
-					print(action);
-					print(mySide);
 					var subproblems=action.execute(current_problem, mySide === 'attacker' ? attackerFull : defenderFull, mySide === 'attacker' ? defenderFull : attackerFull, mySide,otherSide, options, input);
-					if (true)
-						print(subproblems);
 					for (var k = 0; k < subproblems.length; k++){
 						var sub=subproblems[k];
 						for (let property of ['last_action_attacker','last_action_defender','passed_attacker','passed_defender','completed_actions_attacker','completed_actions_defender','start_of_combat_units_both_sides']) {
@@ -1361,7 +1357,6 @@
 						}
 
 						var subproblems = ensemble.getSubproblems();
-						print(subproblems)
 						subproblems.forEach(function (subproblem) {
 							if (options.defender.mentakMech && !subproblem.defender.some(unitIs(game.UnitType.Mech))){
 								game.restoreDamage(input,'attacker',subproblem.attacker);

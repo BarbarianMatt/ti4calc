@@ -320,7 +320,7 @@
 			sustainMechs: new Option("Sustain Only During Combat", "Only use Sustain Damage on your mechs when in combat", undefined,'Mech','Ground'),
 		},
 		Yin: {
-			indoctrinate: new Option("Use Indoctrination", "Use your Indoctrination Faction Ability to replace one of your opponent's infantry with one of your own at the start of ground combat", undefined,undefined,'Ground'),
+			indoctrinate: new Option("Use Indoctrination", "Use your Indoctrination Faction Ability to replace one of your opponent's infantry with one of your own at the start of ground combat"),
 			//indoctrinateMechA: new Option("Indoctrinate Mech", "Instead replace their infantry with your mech", 'attacker',undefined,'Ground', 'attacker.indoctrinate'),
 			//indoctrinateMechOmegaA: new Option("Indoctrinate Mech*", "Instead replace their mech with your mech", 'attacker',undefined,'Ground', 'attacker.indoctrinate'),
 			//indoctrinateMechD: new Option("Indoctrinate Mech", "Instead replace their infantry with your mech", 'defender',undefined,'Ground', 'defender.indoctrinate'),

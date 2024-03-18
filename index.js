@@ -53,7 +53,6 @@
 							this.options[side][option] = false;
 					}
 				}
-				console.log(this.options)
 				for (var options in SpecificOptions) {
 					for (var race in SpecificOptions[options]){
 						for (var option in SpecificOptions[options][race]){
@@ -67,7 +66,8 @@
 				this.tallyCosts();
 				this.computing = true;
 				var self = this;
-
+				console.trace();
+				print(this.options);
 				persistInput();
 				// veeery poor man's background processing
 				setTimeout(function () {
@@ -1069,7 +1069,6 @@
 						this.options[battleSide][option] = false;
 				}
 			}
-			console.log(this.options)
 			for (var options in SpecificOptions) {
 				for (var race in SpecificOptions[options]){
 					for (var option in SpecificOptions[options][race]){
@@ -1145,7 +1144,7 @@
 					counter.participants = Math.min(counter.participants,counter.count);
 					counter.notBombarding = Math.min(counter.notBombarding,counter.count);
 				}
-				//this.recompute();
+				this.recompute();
 			},
 			deep: true
 		}
@@ -1246,5 +1245,21 @@
 			result.defenderUnits[unitType].notBombarding = result.defenderUnits[unitType].notBombarding || 0;
 		}
 		return result;
+	}
+	function print(obj) {
+		// Get the current stack trace to find the line where the function is called
+		const stack = new Error().stack;
+		const stackLines = stack.split("\n");
+	  
+		// Get the line number from the stack trace
+		const lineNumber = stackLines[1].match(/:(\d+):\d+/)[1];
+	  
+		// Check if the object is undefined or null and print accordingly
+		if (obj === undefined || obj === null) {
+		  console.log(obj, "at line:", lineNumber);
+		} else {
+		  // If the object is neither null nor undefined, print a copy of the object
+		  console.log(JSON.parse(JSON.stringify(obj)), "at line:", lineNumber);
+		}
 	}
 })();

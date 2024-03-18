@@ -123,15 +123,21 @@
 			var actions = prebattleActions;
 			var aDeadUnits=[];
 			var dDeadUnits=[];
-			/*if (options.attacker.race === game.Race.Mentak || options.defender.race === game.Race.Mentak) {
-				actions = prebattleActions.slice();
-				var t = actions[1];
-				actions[1] = actions[2];
-				actions[2] = t;
-				if (actions[1].name !== 'Mentak racial' ||
-					actions[2].name !== 'Assault Cannon')
-					throw new Error('unexpected pre-battle actions order');
-			}*/
+			var maximum_actions=20;
+			var actions=0;
+			var all_actions_resolved=false;
+			var act='attacker';
+			var passes=0;
+			while (!all_actions_resolved && actions<maximum_actions){
+				if (act == 'attacker'){
+					for (var j = 0; j < actions.length; i++) {
+						var action = actions[j];
+						var condition = 
+					}
+				}
+			}
+
+
 			for (var i = 0; i < actions.length; i++) {
 				var action = actions[i];
 				if (action.appliesTo === battleType){
