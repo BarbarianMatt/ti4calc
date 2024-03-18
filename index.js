@@ -66,8 +66,8 @@
 				this.tallyCosts();
 				this.computing = true;
 				var self = this;
-				console.trace();
-				print(this.options);
+				//console.trace();
+				//print(this.options);
 				persistInput();
 				// veeery poor man's background processing
 				setTimeout(function () {

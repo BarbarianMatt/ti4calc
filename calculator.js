@@ -83,6 +83,7 @@
 					current_problem.other_side=mySide;
 				} else {
 					var subproblems=action.execute(current_problem, mySide === 'attacker' ? attackerFull : defenderFull, mySide === 'attacker' ? defenderFull : attackerFull, mySide,otherSide, options, input);
+					//print(action);
 					for (var k = 0; k < subproblems.length; k++){
 						var sub=subproblems[k];
 						for (let property of ['last_action_attacker','last_action_defender','passed_attacker','passed_defender','completed_actions_attacker','completed_actions_defender','start_of_combat_units_both_sides']) {
@@ -973,7 +974,7 @@
 						for (var i = 0; i<thisSideFull.length;i++){
 							var unit = thisSideFull[i];
 							if (unit.typeGroundForce && !unit.isDamageGhost){
-								addUnit(problem,thisSide, otherSide,thisSideFull, input, unit.type, 1, problem[thisSide], false, {typeShip: true});		
+								addUnit(problem,thisSide, otherSide,thisSideFull, input, unit.type, 1, problem[thisSide], false, {...unit, typeShip: true});		
 							}
 						}
 						return [problem];

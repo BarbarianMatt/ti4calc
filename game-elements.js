@@ -1367,6 +1367,12 @@
 					result[arrayKeys[i]] = this[arrayKeys[i]];
 				}
 			}
+			for (let prop in this) {
+				if (this.hasOwnProperty(prop) && isNaN(prop)) {
+					result[prop] = this[prop];
+				}
+			}
+
 			return result;
 		}
 
